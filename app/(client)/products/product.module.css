@@ -1,0 +1,15 @@
+.customtable{
+    padding: 10px 16px !important;
+}
+.textstyle{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.cellpadding{
+    padding: 10px 16px !important;
+    color: #616161 !important;
+    font-weight: 400 !important;
+
+    
+}
