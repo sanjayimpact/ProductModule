@@ -623,6 +623,10 @@ const goback = ()=>{
           backgroundColor: "#ffffff",
           borderRadius: 2,
         }}>
+
+
+
+          
            <Typography variant="p" sx={{ fontWeight: "bold" }}>
               Search Engine Listing
               </Typography>
@@ -656,15 +660,20 @@ const goback = ()=>{
     </Paper>
       </Grid>
       <Grid item xs={3} mt={7}>
+        
       <Paper
         elevation={3}
         sx={{
-          p: 4,
+          p: 2,
           backgroundColor: "#ffffff",
           borderRadius: 2,
         }}
-      >
-      <Grid item xs={12}>
+      >     <Typography variant="p" sx={{ fontWeight: "bold" }}>
+Status
+     </Typography>
+     
+      <Grid item xs={12} mt={2.5}>
+        
             <FormControl fullWidth size="small">
               <InputLabel>Product Status</InputLabel>
               <Select
@@ -676,6 +685,61 @@ const goback = ()=>{
                 <MenuItem value="Draft">Draft</MenuItem>
               </Select>
             </FormControl>
+          </Grid>
+        </Paper>
+      <Paper
+        elevation={3}
+        sx={{
+          mt:4,
+          p: 2,
+          backgroundColor: "#ffffff",
+          borderRadius: 2,
+        }}
+      >     <Typography variant="p" sx={{ fontWeight: "bold" }}>
+Product organization
+     </Typography>
+     
+      <Grid item xs={12} mt={2.5}>
+     <Grid>
+     <TextField
+              size="small"
+              label="Type"
+              fullWidth
+              variant="outlined"
+              placeholder="Type"
+              value={formData.type}
+              onChange={handleChange("type")}
+              error={!!errors.type}
+              helperText={errors.type}
+            />
+     </Grid>
+     <Grid mt={4}>
+     <TextField
+              size="small"
+              label="Vendor"
+              fullWidth
+              variant="outlined"
+              placeholder="Vendor"
+              value={formData.type}
+              onChange={handleChange("vendor")}
+              error={!!errors.vendor}
+              helperText={errors.vendor}
+            />
+     </Grid>
+     <Grid mt={4}>
+     <TextField
+              size="small"
+              label="Tags"
+              fullWidth
+              variant="outlined"
+              placeholder="Tags"
+              value={formData.tags}
+              onChange={handleChange("tags")}
+              error={!!errors.tags}
+              helperText={errors.tags}
+            />
+     </Grid>
+         
           </Grid>
         </Paper>
       </Grid>
