@@ -23,7 +23,7 @@ import InventoryTable from "./Variantdetails";
 
 const Variants = ({handleAddOptions, handleaddvariants,price,Barcode,images,editProduct, existingOptions,handlremoveOptions,extractvariants,currentProduct ,handleRemovedVariants,sku}) => {
 
-
+console.log(existingOptions);
   const [addOption, setAddOption] = useState(false);
   const [options, setOptions] = useState([]);
   const[remove,setremove] = useState([]);
@@ -153,7 +153,8 @@ const Variants = ({handleAddOptions, handleaddvariants,price,Barcode,images,edit
   };
   
 
-  const handleRemoveVariantValue = (optionIndex, valueIndex) => {
+  const  handleRemoveVariantValue = (optionIndex, valueIndex) => {
+    
     const updatedOptions = [...options];
 
     const optionName = updatedOptions[optionIndex].name;

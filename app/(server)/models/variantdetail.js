@@ -11,6 +11,10 @@ const variantdetailSchema = new mongoose.Schema({
         type: Map,
         of: String, // All values will be strings
   
+    }, isdefault:{
+        type:Boolean,
+        enum:[true,false],
+        default:false
     }
 
 })

@@ -6,7 +6,7 @@ import {
   TextField,
   Typography,
   Button,
-  Divider,
+
   MenuItem,
   Select,
   InputLabel,
@@ -62,7 +62,8 @@ const{setshow} = useECart();
     slug: "",
     cprice:"",
     costprice:"",
-    Barcode:""
+    Barcode:"",
+    stocks:""
   });
   const [isTaxed, setIsTaxed] = useState(false);
   const [iserror, seterror] = useState(false);
@@ -183,7 +184,14 @@ const{setshow} = useECart();
     }else if(field ==="costprice" &&(!value || isNaN(value) || value <= 0)){
       newErrors.costprice = "Cost price must be a positive number"
     
+    
+    }else if(field ==="stocks" &&(!value || isNaN(value) || value <= 0)){
+      newErrors.stocks = "stocks must be a positive number"
+    
     }
+    else if (field === "Barcode" && (!value || value.length < 10)) {
+      newErrors.Barcode = "Barcode must be at least 10 characters";
+    } 
     
     else {
       delete newErrors[field];
@@ -247,6 +255,7 @@ const{setshow} = useECart();
     formDataToSend.append("costprice",formData?.costprice);
     formDataToSend.append("Barcode",formData?.Barcode);
     formDataToSend.append("tax",isTaxed);
+    formDataToSend.append("stocks",formData?.stocks);
     
 
     // Append images
@@ -570,6 +579,21 @@ const goback = ()=>{
                 ),
               }}
             />
+          </Grid>
+
+          <Grid item xs = {4}>
+          <TextField
+              size="small"
+              label="Stock Quantity"
+              fullWidth
+              variant="outlined"
+              placeholder="Stock"
+              value={formData.stocks}
+              onChange={handleChange("stocks")}
+              error={!!errors.stocks}
+              helperText={errors.stocks}
+            />
+
           </Grid>
           </>
     </Grid>

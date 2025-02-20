@@ -47,6 +47,11 @@ const varianSchema = new mongoose.Schema({
     istax:{
         type:Boolean,
         default:false
+    },
+    isdefault:{
+        type:Boolean,
+        enum:[true,false],
+        default:false
     }
 },{timestamps:true});
 export const Variant = mongoose.models.Variant || mongoose.model('Variant', varianSchema);

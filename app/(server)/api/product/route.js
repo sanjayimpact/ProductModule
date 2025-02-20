@@ -34,6 +34,7 @@ export const POST = async (req, res) => {
     const costprice = payload.get("costprice") || "0";
     const Barcode = payload.get("Barcode") || " ";
     const isTax = payload.get("tax");
+    const stock = payload.get("stock");
     // ✅ Process Images and Save Them Locally
     let featuredFilePaths = [];
     for (let [key, file] of payload.entries()) {
@@ -85,7 +86,7 @@ export const POST = async (req, res) => {
     if (!payload.has("variantdata[0][price]")) {
       // No variant data provided – create a default empty variant.
       const variantPrice = price;
-      const variantStock = "0";
+      const variantStock = stock;
       const variantImage = "";
      
       const attributes = {}; // no attributes
@@ -100,7 +101,8 @@ export const POST = async (req, res) => {
         costprice:costprice,
         variant_image: variantImage,
         isVariandetails: 0,
-        istax:isTax 
+        istax:isTax,
+        isdefault:true
       });
       await newVariant.save();
 
@@ -108,6 +110,7 @@ export const POST = async (req, res) => {
         variant_id: newVariant._id,
         Options: [], // no options
         option_values: {},
+        isdefault:true
 
       });
       await variantDetail.save();
@@ -242,8 +245,8 @@ export const GET = async () => {
 
 
 
-
 export const PATCH = async (req, res) => {
+
   try {
     // Connect to the database
     await connectDB();
@@ -321,18 +324,63 @@ export const PATCH = async (req, res) => {
           variant_image: "",
           sku: sku || existingVariants[0].sku,
           isVariandetails: 0,
+          isdefault:true
         });
         await Variantdetail.findOneAndUpdate(
           { variant_id: lastVariantId },
           {
             Options: [],
             option_values: {},
+            isdefault:true
           }
         );
       }
-      await Variantdetail.deleteMany({ variant_id: { $in: removeVariations } });
-      await Variant.deleteMany({ _id: { $in: removeVariations } });
+      await Variantdetail.deleteMany({ variant_id: { $in: removeVariations } ,isdefault: false });
+      await Variant.deleteMany({ _id: { $in: removeVariations },isdefault: false  });
     }
+
+
+    //delete usign options
+
+    const removeOptions = {};
+    let removeIndex = 0;
+    while (data.has(`removeoptions[${removeIndex}][name]`)) {
+      const optionName = data.get(`removeoptions[${removeIndex}][name]`);
+      let removedValues = [];
+
+      let valueIndex = 0;
+      while (data.has(`removeoptions[${removeIndex}][values][${valueIndex}]`)) {
+        removedValues.push(data.get(`removeoptions[${removeIndex}][values][${valueIndex}]`));
+        valueIndex++;
+      }
+
+      removeOptions[optionName] = removedValues;
+      removeIndex++;
+    }
+
+
+    // ✅ Delete Variants that Match Removed Options
+    if (Object.keys(removeOptions).length > 0) {
+      for (const [optionName, removedValues] of Object.entries(removeOptions)) {
+        // Find all variants with matching option values to delete
+        const variantsToDelete = await Variantdetail.find({
+          [`option_values.${optionName}`]: { $in: removedValues },
+        });
+
+        if (variantsToDelete.length > 0) {
+          // Extract variant IDs to delete
+          const variantIdsToDelete = variantsToDelete.map((v) => v.variant_id);
+          
+          // Delete the variants from both collections
+          await Variant.deleteMany({ _id: { $in: variantIdsToDelete },isdefault: false });
+     
+          await Variantdetail.deleteMany({ variant_id: { $in: variantIdsToDelete },isdefault: false });
+
+       
+        }
+      }
+    }
+
 
     // Process updated or new variants
     let variantIndex = 0;
@@ -381,7 +429,7 @@ export const PATCH = async (req, res) => {
           stock_quantity: variantStock,
           variant_image: variantImage,
           sku: variantsSku,
-          isVariandetails: Object.keys(attributes).length > 0 ? 1 : 0,
+          isVariandetails: 1
         });
         await Variantdetail.create({
           variant_id: newVariant._id,
@@ -422,6 +470,9 @@ export const PATCH = async (req, res) => {
           stock_quantity: "0",
           variant_image: "",
           isVariandetails: 0,
+          isdefault:true,
+          
+isVariandetails:0
         },
         { new: true, upsert: true }
       );
@@ -430,6 +481,7 @@ export const PATCH = async (req, res) => {
         {
           Options: [],
           option_values: {},
+          isdefault:true
         },
         { new: true, upsert: true }
       );
