@@ -7,13 +7,16 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import { useRouter } from "next/navigation";
 import ProductForm from "./addproduct";
+import UnsavedProductBar from "./unsavedBar";
+import { useECart } from "../Context/eCartcontext";
 const drawerWidth = 240;
 
 export default function DashboardLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const[activeTab,setactivetab] = useState("")
-  const[show,setshow] = useState(false);
+ 
   const router = useRouter();
+  const{show,setshow} = useECart();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -54,11 +57,18 @@ export default function DashboardLayout({ children }) {
   
 const OpenAddproduct = ()=>{
 setshow(true);
+localStorage.setItem('add',true);
   router.push('/products/new') 
 
 
 
 }
+useEffect(()=>{
+  let item = localStorage.getItem('add');
+
+
+},[])
+
 const closeProduct = () => {
   router.push('/products') 
 
@@ -94,11 +104,14 @@ const closeProduct = () => {
   );
 
   return (
+    <>
+
+
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
-      
+
       {/* Top Navbar */}
-      <AppBar position="fixed" sx={{ width: { sm: `calc(100% - ${drawerWidth}px)` }, ml: { sm: `${drawerWidth}px` } }}>
+      <AppBar position="fixed" sx={{ width: { sm: `calc(100% - ${drawerWidth}px)` }, ml: { sm: `${drawerWidth}px`, background:"#1a1a1a " } }}>
         <Toolbar>
           <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, display: { sm: "none" } }}>
             <MenuIcon />
@@ -106,6 +119,16 @@ const closeProduct = () => {
           <Typography variant="h6" noWrap component="div">
             {activeTab}
           </Typography>
+          <div style={{
+        display:'flex',
+        justifyContent:'center',
+        position:'absolute',
+        width:"100%",
+        top:'11px',
+        zIndex:999
+       }}>
+       <UnsavedProductBar></UnsavedProductBar>
+       </div>
         </Toolbar>
       </AppBar>
 
@@ -122,29 +145,37 @@ const closeProduct = () => {
       </Box>
 
       {/* Main Content */}
-      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}>
+  
+      <Box  component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } ,position:"relative", zIndex:0 }}>
+        
         <Toolbar /> {/* Space for AppBar */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-        <Button
+    
+  {show?'':      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+  <Button
   variant="contained"
-  color="primary"
-  startIcon={show ? <ArrowBackIcon /> : <AddCircleOutlineIcon />}
-  onClick={show?closeProduct:OpenAddproduct}
+ 
+  onClick={OpenAddproduct}
   sx={{
-    borderRadius: 2,
-    px: 3,
-    py: 1.2,
+    borderRadius: 2,         // Adjust for the desired rounding
+    px: 2,
+    py: 0.5,
+    fontSize:'12px',
     fontWeight: "bold",
     textTransform: "none",
-    backgroundColor: "#1976d2",
-    "&:hover": { backgroundColor: "#1565c0" },
+    backgroundColor: "#333",  // Dark gray/black background
+    color: "#fff",            // White text
+    border: "1px solid #000", // Subtle border
+    "&:hover": {
+      backgroundColor: "#444", // Slightly lighter on hover
+    },
   }}
 >
-  {show ? "Back" : "Add Product"}
-</Button>;
-    </Box>
+  Add Product
+</Button>
+    </Box>}
      {children}  
       </Box>
     </Box>
+    </>
   );
 }

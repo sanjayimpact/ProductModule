@@ -3,31 +3,12 @@ import { Product } from "../../models/product";
 import { Variant } from "../../models/variant";
 import { Variantdetail } from "../../models/variantdetail";
 import connectDB from "../../lib/db";
-import multer from "multer";
-import { promisify } from "util"; 
 import path from "path";
 import fs from "fs";
 
 
 
-// Function to generate all possible variant combinations
-const generateVariants = (options) => {
-  const keys = options.map((option) => option.name);
-  const values = options.map((option) => option.value.split(",")); // Split values by ","
 
-  const cartesianProduct = (arrays) => {
-    return arrays.reduce(
-      (acc, curr) =>
-        acc.flatMap((accItem) => curr.map((currItem) => [...accItem, currItem])),
-      [[]]
-    );
-  };
-
-  const combinations = cartesianProduct(values);
-  return combinations.map((combination, index) =>
-    keys.reduce((acc, key, i) => ({ ...acc, [key]: combination[i] }), { index })
-  );
-};
 
 
 
@@ -38,21 +19,23 @@ const generateVariants = (options) => {
 export const POST = async (req, res) => {
   try {
     await connectDB();
-let isVariandetails;
+    let isVariandetails;
     // ✅ Get FormData
     let payload = await req.formData();
-
 
     // ✅ Extract Product Data
     const title = payload.get("title");
     const description = payload.get("description");
     const price = payload.get("price") || "0"; // Default price
-    const sku = payload.get("sku") || ""; // Default empty SKU
+    const sku = payload.get("sku") || ""; // Default SKU
     const status = payload.get("status") || "Draft"; // Default status
     const slug = payload.get("slug");
-
-    let files = [];
-    let feturedfilePaths = [];
+    const compareprice = payload.get('cprice') ||"0";
+    const costprice = payload.get("costprice") || "0";
+    const Barcode = payload.get("Barcode") || " ";
+    const isTax = payload.get("tax");
+    // ✅ Process Images and Save Them Locally
+    let featuredFilePaths = [];
     for (let [key, file] of payload.entries()) {
       if (key.startsWith("images[")) {
         const bytes = await file.arrayBuffer();
@@ -62,107 +45,156 @@ let isVariandetails;
 
         // Save image locally
         fs.writeFileSync(filePath, buffer);
-        feturedfilePaths.push(`/uploads/${filename}`);
+        featuredFilePaths.push(`/uploads/${filename}`);
       }
-      
     }
-
- 
-  
     
-  
-
-
     // ✅ Save Product
     const product = new Product({
       product_name: title,
       product_slug: slug,
       product_description: description,
       product_status: status,
-      featured_image:feturedfilePaths,
+      featured_image: featuredFilePaths,
     });
     await product.save();
 
     // ✅ Extract Options Dynamically
     const options = [];
     let optIndex = 0;
-if(!payload.has(`options[${optIndex}][name]`)){
-     options.push({
-      name:"Title",
-      value:"Default Title"
-     })
-     isVariandetails=0;
+    // If no option is provided, add a default option.
+    if (!payload.has(`options[${optIndex}][name]`)) {
+      options.push({
+        name: "Title",
+        value: "Default Title",
+      });
+      isVariandetails = 0;
     }
-  
-
     while (payload.has(`options[${optIndex}][name]`)) {
       options.push({
         name: payload.get(`options[${optIndex}][name]`),
         value: payload.get(`options[${optIndex}][value]`),
       });
       optIndex++;
-      isVariandetails=1;
+      isVariandetails = 1;
     }
 
-    // ✅ Generate Variants Automatically
-    const generatedVariants = generateVariants(options);
-
-    // ✅ Save Variants and Variant Details
+    // ✅ Process Variant Data from the Payload
     const savedVariants = [];
-    for (const variant of generatedVariants) {
-      // ✅ Extract variant details
-      const variantPrice = payload.get(`variantdata[${variant.index}][price]`) || price;
-      const variantStock = payload.get(`variantdata[${variant.index}][stock]`) || "0";
-      let variantImage = ""; // Initialize empty image path
-    
-      // ✅ Check if an image exists for this variant
-      const file = payload.get(`variantdata[${variant.index}][image]`);
-    
-      if (file && typeof file.arrayBuffer === "function") {
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const filename = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-        const filePath = path.join("public/uploads", filename);
-    
-        // Save the file locally
-        fs.writeFileSync(filePath, buffer);
-    
-        // Save relative path for MongoDB
-        variantImage = `/uploads/${filename}`;
-      }
-    
-      // ✅ Create and Save Variant
+    // Check if any variant data is provided. If not, create an empty variant.
+    if (!payload.has("variantdata[0][price]")) {
+      // No variant data provided – create a default empty variant.
+      const variantPrice = price;
+      const variantStock = "0";
+      const variantImage = "";
+     
+      const attributes = {}; // no attributes
+      
       const newVariant = new Variant({
         product_id: product._id,
-        sku: variant.index === 0 ? sku : `${sku}-${variant.index}`,
+        sku: sku, // SKU same as product
         price: variantPrice,
+        compareprice:compareprice,
+        barcode:Barcode,
         stock_quantity: variantStock,
+        costprice:costprice,
         variant_image: variantImage,
-        isVariandetails:isVariandetails // ✅ Store saved image path
+        isVariandetails: 0,
+        istax:isTax 
       });
-    
       await newVariant.save();
-    
-      // ✅ Save Variant Details
+
       const variantDetail = new Variantdetail({
         variant_id: newVariant._id,
-        Options: Object.keys(variant).filter((key) => key !== "index"),
-        option_values: Object.fromEntries(
-          Object.entries(variant).filter(([key]) => key !== "index"))
+        Options: [], // no options
+        option_values: {},
+
       });
-    
       await variantDetail.save();
+
       savedVariants.push(newVariant);
+    } else {
+      // Process each variant provided in the payload.
+      let variantIndex = 0;
+      while (payload.has(`variantdata[${variantIndex}][price]`)) {
+        // Extract basic variant details
+        const variantPrice =
+          payload.get(`variantdata[${variantIndex}][price]`) || price;
+        const variantStock =
+          payload.get(`variantdata[${variantIndex}][stock]`) || "0";
+        const variantSku =
+          payload.get(`variantdata[${variantIndex}][sku]`) ||
+          (variantIndex === 0 ? sku : `${sku}-${variantIndex}`);
+
+        // Process variant image (if provided)
+        let variantImage = "";
+        const file = payload.get(`variantdata[${variantIndex}][image]`);
+        if (file && typeof file.arrayBuffer === "function") {
+          const bytes = await file.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+          const filename = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+          const filePath = path.join("public/uploads", filename);
+          fs.writeFileSync(filePath, buffer);
+          variantImage = `/uploads/${filename}`;
+        }
+
+        // Extract variant attributes
+        let attributes = {};
+        for (let [key, value] of payload.entries()) {
+          const regex = new RegExp(`^variantdata\\[${variantIndex}\\]\\[attributes\\]\\[(.+)\\]$`);
+          const match = key.match(regex);
+          if (match) {
+            const attrName = match[1];
+            attributes[attrName] = value;
+          }
+        }
+
+        // ✅ Create and Save Variant Document
+        const newVariant = new Variant({
+          product_id: product._id,
+          sku: variantIndex === 0 ? sku : `${sku}-${variantIndex}`,
+          price: variantPrice,
+          costprice:costprice,
+          barcode:Barcode,
+          compareprice:compareprice,
+          stock_quantity: variantStock,
+          variant_image: variantImage,
+          isVariandetails: isVariandetails,
+          istax:isTax 
+        });
+        await newVariant.save();
+
+        // ✅ Save Variant Detail Document
+        // Here, we assume the Variantdetail model stores the option names and their values.
+        const variantDetail = new Variantdetail({
+          variant_id: newVariant._id,
+          Options: Object.keys(attributes), // e.g., ["color", "size"]
+          option_values: attributes, // e.g., { color: "red", size: "l" }
+        });
+        await variantDetail.save();
+
+        savedVariants.push(newVariant);
+        variantIndex++;
+      }
     }
-    
-    return NextResponse.json({
-      message: "Product successfully created!",
-    
-      isSuccess:true
-    },{ status: 200 });
+
+    return NextResponse.json(
+      {
+        message: "Product successfully created with variants!",
+        isSuccess: true,
+      },
+      { status: 200 }
+    );
   } catch (err) {
     console.error("Error saving product:", err);
-    return NextResponse.json({ error: "Error saving data", message: err.message,isSuccess:false}, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Error saving data",
+        message: err.message,
+        isSuccess: false,
+      },
+      { status: 500 }
+    );
   }
 };
 
@@ -209,16 +241,18 @@ export const GET = async () => {
 };
 
 
-// update products
+
+
 export const PATCH = async (req, res) => {
   try {
-    let isVariandetails;
-    let variantStock;
-    let variantPrice;
+    // Connect to the database
+    await connectDB();
+
+    // Parse the incoming FormData
     const data = await req.formData();
+
+    // Extract product fields from FormData
     const id = data.get("productId");
-
-
     const title = data.get("title");
     const description = data.get("description");
     const price = data.get("price");
@@ -226,232 +260,191 @@ export const PATCH = async (req, res) => {
     const sku = data.get("sku");
     const slug = data.get("slug");
 
-    // ✅ Check if product exists
-    let check = await Product.findOne({ _id: id });
-    if (!check) {
-      return NextResponse.json(
-        { message: "Product not found", isSuccess: false },
-        { status: 400 }
-      );
-    }   
-     let feturedfilePaths = [];
-    for (let [key, file] of data.entries()) {
+    // Check if the product exists
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(400).json({ message: "Product not found", isSuccess: false });
+    }
+
+    // Update product details
+    const updatedProduct = {
+      product_name: title || product.product_name,
+      product_description: description || product.product_description,
+      product_slug: slug || product.product_slug,
+      product_status: status || product.product_status,
+    };
+
+    // Process new images
+    const featuredFilePaths = [];
+    for (const [key, file] of data.entries()) {
       if (key.startsWith("images[")) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
         const filename = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
         const filePath = path.join("public/uploads", filename);
-
-        // Save image locally
         fs.writeFileSync(filePath, buffer);
-        feturedfilePaths.push(`/uploads/${filename}`);
+        featuredFilePaths.push(`/uploads/${filename}`);
       }
-      
     }
 
-    // ✅ Check if at least one variant exists
-    let checkvariant = await Variant.findOne({ product_id: id });
-    if (!checkvariant) {
-      return NextResponse.json(
-        { message: "Variant not found", isSuccess: false },
-        { status: 400 }
+    // Add new images to the product
+    if (featuredFilePaths.length > 0) {
+      updatedProduct.featured_image = [...product.featured_image, ...featuredFilePaths];
+    }
+
+    // Process removed images
+    const removedImages = [];
+    let removeImgIndex = 0;
+    while (data.has(`removedImages[${removeImgIndex}]`)) {
+      removedImages.push(data.get(`removedImages[${removeImgIndex}]`));
+      removeImgIndex++;
+    }
+    if (removedImages.length > 0) {
+      updatedProduct.featured_image = product.featured_image.filter(
+        (img) => !removedImages.includes(img)
       );
     }
 
-    // ✅ Check if variant details exist
-    let variantdetails = await Variantdetail.findOne({
-      variant_id: checkvariant?._id,
-    });
-    if (!variantdetails) {
-      return NextResponse.json(
-        { message: "Variant details not found", isSuccess: false },
-        { status: 400 }
-      );
-    }
- //code for remove the images 
- const removedImages =[];
- let removeIndexx=0;
- while(data.has(`removedImages[${removeIndexx}]`)){
+    // Save the updated product
+    await Product.findByIdAndUpdate(id, updatedProduct);
 
-removedImages.push(data.get(`removedImages[${removeIndexx}]`));
-removeIndexx++;
- }
-
-
- if(removedImages.length>0){
-  
-  let find = await Product.updateOne({_id:id},{$pull:{ featured_image:{$in:removedImages}}});
-
-
- }
-
-
-    // ✅ Update the product
-    await Product.updateOne(
-      { _id: id }, // Ensure only the correct product is updated
-      {
-        $set: {
-          product_name: title,
-          product_description: description,
-          product_slug: slug,
-          product_status: status,
-         
-         
-        },
-        $push: { featured_image: feturedfilePaths }
-      }
-    );
-
-  
-
-
-
-    // ✅ Extract options dynamically
-    const options = [];
-    let optIndex = 0;
-
-
-    
-    
-    while (data.has(`options[${optIndex}][name]`)) {
-      options.push({
-        name: data.get(`options[${optIndex}][name]`),
-        value: data.get(`options[${optIndex}][value]`),
-      });
-      optIndex++;
-      isVariandetails = 1;
-    }
-    if (options.length === 0) {
-      isVariandetails = 0; 
-      variantStock = 0;
-      variantPrice = 0; // Set isVariandetails to 0 if no options are selected
-     console.log("hello");
-     await Variant.findOneAndDelete({product_id:id});
-     
-   
-    }
-    // ✅ Extract removed options dynamically
-    const removeOptions = {};
-    let removeIndex = 0;
-    while (data.has(`removeoptions[${removeIndex}][name]`)) {
-      const optionName = data.get(`removeoptions[${removeIndex}][name]`);
-      let removedValues = [];
-
-      let valueIndex = 0;
-      while (data.has(`removeoptions[${removeIndex}][values][${valueIndex}]`)) {
-        removedValues.push(data.get(`removeoptions[${removeIndex}][values][${valueIndex}]`));
-        valueIndex++;
-      }
-
-      removeOptions[optionName] = removedValues;
-      removeIndex++;
-    }
-
-
-    // ✅ Delete Variants that Match Removed Options
-    if (Object.keys(removeOptions).length > 0) {
-      for (const [optionName, removedValues] of Object.entries(removeOptions)) {
-        // Find all variants with matching option values to delete
-        const variantsToDelete = await Variantdetail.find({
-          [`option_values.${optionName}`]: { $in: removedValues },
+    // Process removed variants
+    const removeVariations = data.getAll("removeVariations");
+    if (removeVariations.length > 0) {
+      const existingVariants = await Variant.find({ product_id: id });
+      if (existingVariants.length === removeVariations.length) {
+        // If all variants are to be removed, update the last one to default values
+        const lastVariantId = removeVariations.pop();
+        await Variant.findByIdAndUpdate(lastVariantId, {
+          price: price || existingVariants[0].price,
+          stock_quantity: "0",
+          variant_image: "",
+          sku: sku || existingVariants[0].sku,
+          isVariandetails: 0,
         });
-
-        if (variantsToDelete.length > 0) {
-          // Extract variant IDs to delete
-          const variantIdsToDelete = variantsToDelete.map((v) => v.variant_id);
-          
-          // Delete the variants from both collections
-          await Variant.deleteMany({ _id: { $in: variantIdsToDelete } });
-          await Variant.deleteOne({_id:variantIdsToDelete});
-          await Variantdetail.deleteMany({ variant_id: { $in: variantIdsToDelete } });
-
-       
-        }
+        await Variantdetail.findOneAndUpdate(
+          { variant_id: lastVariantId },
+          {
+            Options: [],
+            option_values: {},
+          }
+        );
       }
+      await Variantdetail.deleteMany({ variant_id: { $in: removeVariations } });
+      await Variant.deleteMany({ _id: { $in: removeVariations } });
     }
 
-    // ✅ Generate new variants from updated options
-    const generatedVariants = generateVariants(options);
- 
+    // Process updated or new variants
+    let variantIndex = 0;
+    while (data.has(`variantdata[${variantIndex}][price]`)) {
+      const variantId = data.get(`variantdata[${variantIndex}][id]`);
+      const variantPrice = data.get(`variantdata[${variantIndex}][price]`) || price;
+      const variantStock = data.get(`variantdata[${variantIndex}][stock]`) || "0";
+      const variantsSku =
+        data.get(`variantdata[${variantIndex}][sku]`) || `${sku}-${variantIndex}`;
 
-    const savedVariants = [];
-
-    for (const variant of generatedVariants) {
-      // Get the correct index to fetch price and stock data
-       variantPrice =
-        data.get(`variantdata[${variant.index}][price]`) || price;
-   variantStock =
-        data.get(`variantdata[${variant.index}][stock]`) || "0";
-    
-        let   variantImage = ""; // Set empty by default
-      const file = data.get(`variantdata[${variant.index}][image]`);
-    
+      // Process variant image
+      let variantImage = "";
+      const file = data.get(`variantdata[${variantIndex}][image]`);
       if (file && typeof file.arrayBuffer === "function") {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
         const filename = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
         const filePath = path.join("public/uploads", filename);
-    
-        // Save the file locally
         fs.writeFileSync(filePath, buffer);
-    
-        // Save relative path for MongoDB
         variantImage = `/uploads/${filename}`;
       } else {
-        // ✅ Preserve existing image if no new image is uploaded
-        const existingVariant = await Variant.findOne({
-          product_id: id,
-          sku: variant.index === 0 ? sku : `${sku}-${variant.index}`,
-        });
-    
-        if (existingVariant) {
-          variantImage = existingVariant.variant_image; // Keep old image
+        // If no new image, try to use the existing image if the variant exists
+        if (variantId && variantId !== "null") {
+          const existingVariant = await Variant.findById(variantId);
+          if (existingVariant) {
+            variantImage = existingVariant.variant_image;
+          }
         }
       }
-    
-      // ✅ Update existing variant or create a new one
-      let updatedVariant = await Variant.findOneAndUpdate(
-        { product_id: id, sku: variant.index === 0 ? sku : `${sku}-${variant.index}` },
-        {
-          $set: {
+
+      // Extract variant attributes
+      const attributes = {};
+      for (const [key, value] of data.entries()) {
+        const regex = new RegExp(`^variantdata\\[${variantIndex}\\]\\[attributes\\]\\[(.+)\\]$`);
+        const match = key.match(regex);
+        if (match) {
+          attributes[match[1]] = value;
+        }
+      }
+
+      // If variantId is "null" or not provided, create a new variant & variantdetail
+      if (!variantId || variantId === "null") {
+        const newVariant = await Variant.create({
+          product_id: id,
+          price: variantPrice,
+          stock_quantity: variantStock,
+          variant_image: variantImage,
+          sku: variantsSku,
+          isVariandetails: Object.keys(attributes).length > 0 ? 1 : 0,
+        });
+        await Variantdetail.create({
+          variant_id: newVariant._id,
+          Options: Object.keys(attributes),
+          option_values: attributes,
+        });
+      } else {
+        // Otherwise, update the existing variant and its details
+        const updatedVariant = await Variant.findOneAndUpdate(
+          { _id: variantId },
+          {
             price: variantPrice,
             stock_quantity: variantStock,
             variant_image: variantImage,
-            isVariandetails:isVariandetails // ✅ Retain old image if no new one is uploaded
+            sku: variantsSku,
+            isVariandetails: Object.keys(attributes).length > 0 ? 1 : 0,
           },
-        },
-        { new: true, upsert: true }
-      );
-    
-      // ✅ Update Variant Details
-      await Variantdetail.findOneAndUpdate(
-        { variant_id: updatedVariant._id },
-        {
-          $set: {
-            Options: Object.keys(variant).filter((key) => key !== "index"),
-            option_values: Object.fromEntries(
-              Object.entries(variant).filter(([key]) => key !== "index")
-            ),
+          { new: true }
+        );
+        await Variantdetail.findOneAndUpdate(
+          { variant_id: updatedVariant._id },
+          {
+            Options: Object.keys(attributes),
+            option_values: attributes,
           },
-        },
-        { new: true, upsert: true }
-      );
-    
-      savedVariants.push(updatedVariant);
+          { new: true, upsert: true }
+        );
+      }
+      variantIndex++;
     }
 
-    return NextResponse.json(
-      { message: "Update Successfully", isSuccess: true },
-      { status: 200 }
-    );
+    // If no variants exist, create a default variant
+    if (variantIndex === 0) {
+      const defaultVariant = await Variant.findOneAndUpdate(
+        { product_id: id },
+        {
+          price: price,
+          stock_quantity: "0",
+          variant_image: "",
+          isVariandetails: 0,
+        },
+        { new: true, upsert: true }
+      );
+      await Variantdetail.findOneAndUpdate(
+        { variant_id: defaultVariant._id },
+        {
+          Options: [],
+          option_values: {},
+        },
+        { new: true, upsert: true }
+      );
+    }
+
+    return NextResponse.json({ message: "Update Successfully", isSuccess: true });
   } catch (err) {
     console.error("Error updating product:", err);
-    return NextResponse.json(
-      { error: "Error updating data", message: err.message, isSuccess: false },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      error: "Error updating data",
+      message: err.message,
+      isSuccess: false,
+    });
   }
 };
 
 
-// delete product 
+

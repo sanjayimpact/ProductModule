@@ -16,7 +16,9 @@ import {
   IconButton,
   Snackbar,
   Alert,
-  InputAdornment, // <-- Added InputAdornment here
+  InputAdornment,
+  FormControlLabel,
+  Checkbox, // <-- Added InputAdornment here
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
@@ -24,6 +26,11 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import Variants from "./variants";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import UnsavedProductBar from "./unsavedBar";
+import { generateRandomSKU } from "../utils/helper";
+import { useECart } from "../Context/eCartcontext";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+
 
 // Custom hook to debounce a value
 function useDebounce(value, delay) {
@@ -38,19 +45,8 @@ function useDebounce(value, delay) {
 }
 
 export default function ProductForm() {
+const{setshow} = useECart();
 
-  const generateRandomSKU = () => {
-    let length = 5; // Set desired length
-    let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let sku = '';
-    
-    for (let i = 0; i < length; i++) {
-        let randomIndex = Math.floor(Math.random() * chars.length);
-        sku += chars[randomIndex];
-    }
-    
-    return sku.toUpperCase();
-  };
   
 
   const router = useRouter();
@@ -62,10 +58,13 @@ export default function ProductForm() {
     price: "",
     sku: "",
     images: [],
-    status: "",
+    status: "Draft",
     slug: "",
+    cprice:"",
+    costprice:"",
+    Barcode:""
   });
-
+  const [isTaxed, setIsTaxed] = useState(false);
   const [iserror, seterror] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [errors, setErrors] = useState({});
@@ -74,7 +73,7 @@ export default function ProductForm() {
   // States for options and variants
   const [options, setOptions] = useState([]);
   const [variants, setvariants] = useState([]);
-  
+ 
   // States for slug checking
   const [checkingSlug, setCheckingSlug] = useState(false);
   const [slugError, setSlugError] = useState(false);
@@ -177,7 +176,16 @@ export default function ProductForm() {
       newErrors.price = "Price must be a positive number";
     } else if (field === "sku" && !value) {
       newErrors.sku = "SKU is required";
-    } else {
+
+    }else if(field ==="cprice" &&(!value || isNaN(value) || value <= 0)){
+      newErrors.cprice = "Compare price must be a positive number"
+    
+    }else if(field ==="costprice" &&(!value || isNaN(value) || value <= 0)){
+      newErrors.costprice = "Cost price must be a positive number"
+    
+    }
+    
+    else {
       delete newErrors[field];
     }
     setErrors(newErrors);
@@ -212,13 +220,13 @@ export default function ProductForm() {
   };
 
   const handleSubmit = async () => {
-    const requiredFields = ["title"];
+    const requiredFields = ["title","price"];
     let newErrors = {};
 
     requiredFields.forEach((field) => {
       if (!formData[field] || formData[field].trim() === "") {
         newErrors[field] =
-          field.charAt(0).toUpperCase() + field.slice(1) + " is required";
+          field.charAt(0).toUpperCase() + field.slice(1) + " is required *";
       }
     });
 
@@ -235,6 +243,11 @@ export default function ProductForm() {
     formDataToSend.append("sku", formData.sku);
     formDataToSend.append("status", formData.status);
     formDataToSend.append("slug", formData.slug);
+    formDataToSend.append("cprice",formData?.cprice);
+    formDataToSend.append("costprice",formData?.costprice);
+    formDataToSend.append("Barcode",formData?.Barcode);
+    formDataToSend.append("tax",isTaxed);
+    
 
     // Append images
     formData.images.forEach((image, index) => {
@@ -246,23 +259,22 @@ export default function ProductForm() {
       formDataToSend.append(`options[${index}][name]`, option.name);
       formDataToSend.append(`options[${index}][value]`, option.value);
     });
-console.log(variants);
+
     // Append variant data
     variants.forEach((variant, index) => {
+      // Append each attribute (for example, color and size) under a nested key
+      Object.entries(variant.attributes).forEach(([attrKey, attrValue]) => {
+        formDataToSend.append(`variantdata[${index}][attributes][${attrKey}]`, attrValue);
+      });
+      // Append the other fields
       formDataToSend.append(`variantdata[${index}][price]`, variant.price);
       formDataToSend.append(`variantdata[${index}][stock]`, variant.stock);
       formDataToSend.append(`variantdata[${index}][image]`, variant.image);
       formDataToSend.append(`variantdata[${index}][sku]`, variant.sku);
     });
-
+    
     // Debug log the form data
-    for (let [key, value] of formDataToSend.entries()) {
-      if (key.startsWith("images")) {
-        console.log(`${key}:`, value.name);
-      } else {
-        console.log(`${key}:`, value);
-      }
-    }
+
 
     try {
       let senddata = await axios.post("/api/product", formDataToSend, {
@@ -287,7 +299,11 @@ console.log(variants);
       setMessage(err?.message);
     }
   };
-
+const goback = ()=>{
+  setshow(false);
+  localStorage.setItem('add',false)
+  router.back()
+}
   useEffect(() => {
     if (debouncedSlug) {
       checkSlugAvailability(debouncedSlug);
@@ -309,23 +325,34 @@ console.log(variants);
     }
   }, []);
 
+  
   return (
     <>
+
       {/* Product Form Section */}
+     <Grid container spacing={2} >
+      <Grid item xs={9} >
+      <IconButton onClick={goback}>
+    <ArrowBackIcon />
+  </IconButton>
+  <Typography variant="p" fontWeight="bold" >
+    Add Product
+  </Typography>
       <Paper
         elevation={3}
         sx={{
-          p: 4,
+          p: 2,
+          my:2,
           backgroundColor: "#ffffff",
           borderRadius: 2,
         }}
       >
-        <Typography variant="h4" align="center" gutterBottom>
-          Add Product
-        </Typography>
-        <Divider sx={{ mb: 4 }} />
+       <Box sx={{ display: "flex", alignItems: "center"}}>
+ 
+</Box>
+        
         <Grid container spacing={3}>
-          <Grid item xs={6}>
+          <Grid item xs={12}>
             <TextField
               label="Product Name"
               size="small"
@@ -338,25 +365,7 @@ console.log(variants);
               helperText={errors.title}
             />
           </Grid>
-          <Grid item xs={6}>
-            <TextField
-              label="Product Slug"
-              size="small"
-              fullWidth
-              variant="outlined"
-              // Show the updated slug from formData; fallback to computed slug
-              value={formData.slug || computedSlug}
-              disabled
-              error={slugError || checkingSlug} // When true, helperText appears in red
-              helperText={
-                checkingSlug
-                  ? "Slug exists, generating new one..."
-                  : slugError
-                  ? "check availability"
-                  : ""
-              }
-            />
-          </Grid>
+      
           <Grid item xs={6}>
             <TextField
               label="Description"
@@ -427,20 +436,26 @@ console.log(variants);
               </Box>
             </Box>
           </Grid>
-          <Grid item xs={4}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Product Status</InputLabel>
-              <Select
-                value={formData.status}
-                onChange={handleChange("status")}
-                label="Product Status"
-              >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Draft">Draft</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={4}>
+         
+  
+        </Grid>
+      </Paper>
+      {options.length==0 &&(  <Paper  elevation={3}
+        sx={{
+          mt:5,
+          p: 2,
+        
+          backgroundColor: "#ffffff",
+          borderRadius: 2,
+        }}>
+           <Typography variant="p" sx={{ fontWeight: "bold" }}>
+                Pricing
+              </Typography>
+    <Grid container spacing={2} sx={{ mt: 1 }}>
+       
+   
+          <>
+            <Grid item xs={4}>
             <TextField
               size="small"
               label="Price"
@@ -451,6 +466,76 @@ console.log(variants);
               onChange={handleChange("price")}
               error={!!errors.price}
               helperText={errors.price}
+            />
+          </Grid>
+          <Grid item xs={4}>
+            <TextField
+              size="small"
+              label="Compare Price"
+              fullWidth
+              variant="outlined"
+              placeholder="compare price"
+              value={formData.cprice}
+              onChange={handleChange("cprice")}
+              error={!!errors.cprice}
+              helperText={errors.cprice}
+            />
+          </Grid>
+          <Grid item xs={4}>
+            <TextField
+              size="small"
+              label="Cost Price"
+              fullWidth
+              variant="outlined"
+              placeholder="cost price"
+              value={formData.costprice}
+              onChange={handleChange("costprice")}
+              error={!!errors.costprice}
+              helperText={errors.costprice}
+            />
+                      
+          </Grid>
+
+          <Grid item xs={4}>
+          <FormControlLabel
+  control={<Checkbox checked={isTaxed} onChange={(e)=>setIsTaxed(e.target.checked)} />}
+  label="Charge tax on this product"
+/>
+          </Grid>
+
+          </>
+       
+    </Grid>
+ 
+    </Paper>
+  )}
+    {options.length==0 &&(   <Paper  elevation={3}
+        sx={{
+          mt:5,
+          p: 2,
+        
+          backgroundColor: "#ffffff",
+          borderRadius: 2,
+        }}>
+           <Typography variant="p" sx={{ fontWeight: "bold" }}>
+               Inventory
+              </Typography>
+    <Grid container spacing={2} sx={{ mt: 1 }}>
+       
+   
+          <>
+      
+          <Grid item xs={4}>
+            <TextField
+              size="small"
+              label="Barcode"
+              fullWidth
+              variant="outlined"
+              placeholder="Barcode"
+              value={formData.Barcode}
+              onChange={handleChange("Barcode")}
+              error={!!errors.Barcode}
+              helperText={errors.Barcode}
             />
           </Grid>
           <Grid item xs={4}>
@@ -486,17 +571,94 @@ console.log(variants);
               }}
             />
           </Grid>
-        </Grid>
-      </Paper>
+          </>
+    </Grid>
+ 
+    </Paper>
+        )}
+  
+      
 
-      {/* Variants Section */}
+
+
+
       <Variants
         handleAddOptions={handleAddOptions}
         handleaddvariants={handleaddvariants}
-        price={formData?.price}
+        price={formData.price}
         images={formData.images[0]}
         sku = {formData.sku}
+        Barcode={formData.Barcode}
+
       />
+        <Paper  elevation={3}
+        sx={{
+          mt:5,
+          p: 2,
+        
+          backgroundColor: "#ffffff",
+          borderRadius: 2,
+        }}>
+           <Typography variant="p" sx={{ fontWeight: "bold" }}>
+              Search Engine Listing
+              </Typography>
+    <Grid container spacing={2} sx={{ mt: 1 }}>
+       
+   
+          <>
+      
+          <Grid item xs={6}>
+            <TextField
+              label="Product Slug"
+              size="small"
+              fullWidth
+              variant="outlined"
+              // Show the updated slug from formData; fallback to computed slug
+              value={formData.slug || computedSlug}
+              disabled
+              error={slugError || checkingSlug} // When true, helperText appears in red
+              helperText={
+                checkingSlug
+                  ? "Slug exists, generating new one..."
+                  : slugError
+                  ? "check availability"
+                  : ""
+              }
+            />
+          </Grid>
+          </>
+    </Grid>
+ 
+    </Paper>
+      </Grid>
+      <Grid item xs={3} mt={7}>
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          backgroundColor: "#ffffff",
+          borderRadius: 2,
+        }}
+      >
+      <Grid item xs={12}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Product Status</InputLabel>
+              <Select
+                value={formData.status}
+                onChange={handleChange("status")}
+                label="Product Status"
+              >
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Draft">Draft</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+        </Paper>
+      </Grid>
+     </Grid>
+
+      {/* Variants Section */}
+      
 
       <Grid item xs={12} textAlign="end" marginTop={2}>
         <Button

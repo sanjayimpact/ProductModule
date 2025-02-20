@@ -32,7 +32,7 @@ import Image from "next/image";
 
 const Product = () => {
 
-  const { products, deleteproducts, fetchProducts } = useECart();
+  const { products, deleteproducts, fetchProducts ,setshow} = useECart();
   const [iserror, seterror] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
@@ -45,6 +45,8 @@ const router = useRouter();
 
   // Handle Edit Product
   const handleEditClick = (product) => {
+
+    setshow(true);
     setCurrentProduct(product);
  router.push(`/products/${product?._id}`)
     setEditOpen(true);
@@ -72,8 +74,15 @@ const router = useRouter();
   };
   useEffect(() => {
     fetchProducts()
+    if(products.length===0){
+      setshow(false);
+      localStorage.setItem('add',false)
+    }
   }, [])
-
+useEffect(()=>{
+  setshow(false);
+  localStorage.setItem('add',false)
+},[])
   return (
     <>
       <Box sx={{  }}>
@@ -111,10 +120,7 @@ const router = useRouter();
         </div>
         </TableCell>
 
-        {/* Product Name */}
       
-
-        {/* Product Status */}
         <TableCell>
   <div
     style={{
@@ -131,7 +137,10 @@ const router = useRouter();
 
 
         {/* Total Variations Count */}
-        <TableCell> {product.variants.reduce((total, variant) => total + variant.stock_quantity, 0)} in stock for  {product.variants.length} variants</TableCell>
+        <TableCell sx={{ color: product?.variants?.length > 0 ? 'black' : 'red' }}>
+  {product?.variants?.reduce((total, variant) => total + (variant?.stock_quantity || 0), 0)} in stock
+  {product?.variants?.length > 0 ? ` for ${product.variants.length} variants` : ''}
+</TableCell>
 
     
 

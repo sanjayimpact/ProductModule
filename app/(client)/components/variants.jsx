@@ -21,7 +21,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import InventoryTable from "./Variantdetails";
 
-const Variants = ({handleAddOptions, handleaddvariants,price,images,editProduct, existingOptions,handlremoveOptions,extractvariants,currentProduct ,sku}) => {
+const Variants = ({handleAddOptions, handleaddvariants,price,Barcode,images,editProduct, existingOptions,handlremoveOptions,extractvariants,currentProduct ,handleRemovedVariants,sku}) => {
+
 
   const [addOption, setAddOption] = useState(false);
   const [options, setOptions] = useState([]);
@@ -83,7 +84,7 @@ const Variants = ({handleAddOptions, handleaddvariants,price,images,editProduct,
       const invalidToken = lowerTokens.find((token) => invalidRegex.test(token));
       if (invalidToken) {
         errors.value =
-          "Special characters such as @, #, %, $, ^, &, *, (, ) are not allowed in option values";
+          "Special characters are not allowed in option values";
         isValid = false;
       }
     }
@@ -154,6 +155,7 @@ const Variants = ({handleAddOptions, handleaddvariants,price,images,editProduct,
 
   const handleRemoveVariantValue = (optionIndex, valueIndex) => {
     const updatedOptions = [...options];
+
     const optionName = updatedOptions[optionIndex].name;
   const removedValue = updatedOptions[optionIndex].value[valueIndex];
   setremove((prev) => ({
@@ -221,8 +223,8 @@ const Variants = ({handleAddOptions, handleaddvariants,price,images,editProduct,
 
   return (
     <>
-      <Paper elevation={3} sx={{ p: 4, mt: 5, backgroundColor: "#ffffff", borderRadius: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3 }}>
+      <Paper elevation={3} sx={{ p: 2, mt: 5, backgroundColor: "#ffffff", borderRadius: 2 }}>
+        <Typography variant="p" sx={{ fontWeight: "bold", mb: 3 }}>
           Variants
         </Typography>
 
@@ -271,11 +273,13 @@ const Variants = ({handleAddOptions, handleaddvariants,price,images,editProduct,
         )}
 
         {/* Add New Variant */}
-        <Grid container spacing={3}>
+        <Grid container spacing={3} pt={3}>
           {!addOption && (
-            <Grid item xs={3}>
+            <Grid item xs={4}>
               <Box
+              
                 sx={{
+                  width:"100%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "flex-start",
@@ -368,7 +372,7 @@ const Variants = ({handleAddOptions, handleaddvariants,price,images,editProduct,
           )}
         </Grid>
       </Paper>
-      {options.length > 0 && <InventoryTable  sku={sku} currentProduct={currentProduct} extractvariants={extractvariants} handleaddvariants={handleaddvariants} options={options} price={price} images = {images} editProduct = {editProduct}/>}
+      {options.length > 0 && <InventoryTable Barcode  ={Barcode}  sku={sku} currentProduct={currentProduct} handleRemovedVariants={handleRemovedVariants} extractvariants={extractvariants} handleaddvariants={handleaddvariants} options={options} price={price} images = {images} editProduct = {editProduct}/>}
     </>
   );
 };

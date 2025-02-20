@@ -16,14 +16,18 @@ import {
   IconButton,
   Snackbar,
   Alert,
-  InputAdornment,
+  FormControlLabel,
+  Checkbox,
+
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+
 import Variants from "./variants";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useECart } from "../Context/eCartcontext";
 
 // Custom hook to debounce a value
 function useDebounce(value, delay) {
@@ -39,7 +43,7 @@ function useDebounce(value, delay) {
 
 export default function EditProductForm({ currentProduct }) {
 
-
+  const { setshow } = useECart();
   const router = useRouter();
 
   const [editProduct, seteditProduct] = useState(true);
@@ -57,6 +61,10 @@ export default function EditProductForm({ currentProduct }) {
     images: currentProduct?.featured_image ? [...currentProduct.featured_image] : [],
     status: currentProduct?.product_status || "",
     slug: currentProduct?.product_slug || "",
+    costprice: currentProduct?.variants?.[0]?.costprice || "",
+    cprice: currentProduct?.variants?.[0]?.
+      compareprice || "",
+    Barcode: currentProduct?.variants?.[0]?.barcode
   });
   const [removedImages, setRemovedImages] = useState([]);
   // States for errors, messages, etc. (unchanged)
@@ -79,6 +87,8 @@ export default function EditProductForm({ currentProduct }) {
   const [skuError, setSkuError] = useState(false);
   const [options, setOptions] = useState([]);
   const [removeoptions, setremoveoptions] = useState([]);
+  const [removevariation, setremovevariation] = useState([]);
+  const [isTaxed, setIsTaxed] = useState(currentProduct?.variants?.[0]?.istax);
   // Debounce logic (unchanged)
   const computedSlug = formData.slug.toLowerCase().trim().replace(/\s+/g, "-");
   const debouncedSlug = useDebounce(computedSlug, 500);
@@ -139,7 +149,20 @@ export default function EditProductForm({ currentProduct }) {
     } else if (field === "sku" && !value) {
       newErrors.sku = "SKU is required";
 
-    } else if (field === "description" && !value) {
+    }
+
+    else if (field === "cprice" && (!value || isNaN(value) || value <= 0)) {
+      newErrors.cprice = "Compare price must be a positive number"
+
+    } else if (field === "costprice" && (!value || isNaN(value) || value <= 0)) {
+      newErrors.costprice = "Cost price must be a positive number"
+
+    }
+
+
+
+
+    else if (field === "description" && !value) {
       newErrors.description = "Description is required"
     }
     else {
@@ -209,7 +232,9 @@ export default function EditProductForm({ currentProduct }) {
 
 
   };
-
+  const handleRemovedVariants = (values) => {
+    setremovevariation(values);
+  }
 
   const handlremoveOptions = (values) => {
     setremoveoptions(values);
@@ -223,6 +248,8 @@ export default function EditProductForm({ currentProduct }) {
 
   // CREATE or UPDATE on submit
   const handleSubmit = async () => {
+    ;
+
     const requiredFields = ["title"];
     let newErrors = {};
 
@@ -279,29 +306,51 @@ export default function EditProductForm({ currentProduct }) {
     }
 
     // Append variant data
-    variants.forEach((variant, index) => {
-      formDataToSend.append(`variantdata[${index}][price]`, variant.price ? variant.price : 0);
-      formDataToSend.append(`variantdata[${index}][stock]`, variant.stock ? variant.stock : 0);
-      formDataToSend.append(`variantdata[${index}][sku]`, variant.sku ? variant.sku : '');
-      if (variant.image) {
-        if (variant?.image instanceof File) {
-          formDataToSend.append(`variantdata[${index}][image]`, variant.image);
+    if (variants.length > 0) {
+      variants.forEach((variant, index) => {
+        // Only iterate if attributes exists and is an object
+        if (variant.attributes && typeof variant.attributes === "object") {
+          Object.entries(variant.attributes).forEach(([attrKey, attrValue]) => {
+            formDataToSend.append(
+              `variantdata[${index}][attributes][${attrKey}]`,
+              attrValue
+            );
+          });
         }
-      }
+        formDataToSend.append(
+          `variantdata[${index}][price]`,
+          variant.price ? variant.price : 0
+        );
+        formDataToSend.append(
+          `variantdata[${index}][stock]`,
+          variant.stock ? variant.stock : 0
+        );
+        formDataToSend.append(
+          `variantdata[${index}][sku]`,
+          variant.sku ? variant.sku : ""
+        );
+        formDataToSend.append(
+          `variantdata[${index}][id]`,
+          variant.id ? variant.id : null
+        );
+        if (variant.image) {
+          if (variant.image instanceof File) {
+            formDataToSend.append(`variantdata[${index}][image]`, variant.image);
+          }
+        }
+      });
+    }
 
 
-
-
-    });
+    // Append removed variant data from removevariation state
+    if (removevariation.length > 0) {
+      removevariation.forEach((item) => {
+        formDataToSend.append('removeVariations', item);
+      });
+    }
 
     // Debug log
-    for (let [key, value] of formDataToSend.entries()) {
-      if (key.startsWith("images")) {
-        console.log(`${key}:`, value.name);
-      } else {
-        console.log(`${key}:`, value);
-      }
-    }
+
 
     try {
       let senddata;
@@ -376,26 +425,26 @@ export default function EditProductForm({ currentProduct }) {
 
   const checkSlugAvailability = async (slug) => {
     if (!slug.trim()) return;
-  
+
     // If the slug is the same as the current product slug, no need to check availability
     if (slug === currentProduct?.product_slug) {
       setSlugError(false);
       return;
     }
-  
+
     setCheckingSlug(true);
-  
+
     try {
       const response = await axios.get(`/api/slug?slug=${slug}`);
-  
+
       if (response.data.exists) {
         setSlugError(true);
-  
+
         setTimeout(async () => {
           let newSlug = slug;
           let attempt = 1;
           let isAvailable = false;
-  
+
           while (!isAvailable) {
             const res = await axios.get(`/api/slug?slug=${newSlug}`);
             if (!res.data.exists) {
@@ -405,7 +454,7 @@ export default function EditProductForm({ currentProduct }) {
               attempt++;
             }
           }
-  
+
           setFormData((prev) => ({ ...prev, slug: newSlug }));
           setSlugError(true);
           setCheckingSlug(false);
@@ -421,7 +470,7 @@ export default function EditProductForm({ currentProduct }) {
       setCheckingSlug(false);
     }
   };
-  
+
   useEffect(() => {
     if (debouncedSlug) {
       checkSlugAvailability(debouncedSlug);
@@ -430,180 +479,346 @@ export default function EditProductForm({ currentProduct }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSlug]);
 
+  const goback = () => {
+    setshow(false);
+    localStorage.setItem('add', false)
+    router.back()
+  }
+
+
   return (
     <>
-      <Paper
-        elevation={3}
-        sx={{
-          p: 4,
-          backgroundColor: "#ffffff",
-          borderRadius: 2,
-        }}
-      >
-        <Divider sx={{ mb: 4 }} />
-        <Grid container spacing={3}>
-          <Grid item xs={6}>
-            <TextField
-              label="Product Name"
-              size="small"
-              fullWidth
-              variant="outlined"
-              placeholder="Enter product name"
-              value={formData.title}
-              onChange={handleChange("title")}
-              error={!!errors.title}
-              helperText={errors.title}
-            />
-          </Grid>
-          <Grid item xs={6}>
-  <TextField
-    label="Product Slug"
-    size="small"
-    fullWidth
-    variant="outlined"
-    value={formData.slug || ""}
-    onChange={handleChange("slug")}
-    error={slugError || (formData.slug.trim() === "" && !checkingSlug)}
-    helperText={
-      checkingSlug
-        ? "Checking slug availability..."
-        : slugError
-        ? "This slug already exists. Generating a new one..."
-        : formData.slug.trim() === ""
-        ? "Slug is required"
-        : ""
-    }
-  />
-</Grid>
+      <Grid container spacing={2}>
+        <Grid item xs={9}>
+          <IconButton onClick={goback}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="p" fontWeight="bold" >
+            Edit  Product
+          </Typography>
+          <Paper
+            elevation={3}
+            sx={{
+              p: 2,
+              my: 2,
+              backgroundColor: "#ffffff",
+              borderRadius: 2,
+            }}
+          >
+
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Product Name"
+                  size="small"
+                  fullWidth
+                  variant="outlined"
+                  placeholder="Enter product name"
+                  value={formData.title}
+                  onChange={handleChange("title")}
+                  error={!!errors.title}
+                  helperText={errors.title}
+                />
+              </Grid>
 
 
-          <Grid item xs={6}>
-            <TextField
-              label="Description"
-              size="small"
-              fullWidth
-              multiline
-              rows={4}
-              variant="outlined"
-              placeholder="Enter product description"
-              value={formData.description}
-              onChange={handleChange("description")}
-              error={!!errors.description}
-              helperText={errors.description}
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <Box
-              sx={{
-                border: "2px dashed #c4c4c4",
-                borderRadius: 1,
-                p: formData?.images?.length > 0 ? 1 : 4,
-                textAlign: "center",
-                backgroundColor: "#fafafa",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 2,
-                  justifyContent:
-                    formData?.images?.length > 0 ? "start" : "center",
-                }}
-              >
-                {formData?.images?.map((file, index) => {
-                  let imageUrl = typeof file === "string" ? file : URL.createObjectURL(file);
-                  return (
-                    <Box key={index} sx={{ position: "relative" }}>
-                      <Image src={imageUrl} alt="Preview" width={80} height={80} style={{ borderRadius: 8, objectFit: "cover" }} />
-                      <IconButton onClick={() => removeImage(index)} size="small" sx={{ position: "absolute", top: -5, right: -5, background: "white" }}>
-                        <DeleteIcon fontSize="small" color="error" />
-                      </IconButton>
-                    </Box>
-                  );
-                })}
-                {formData.images.length < 5 && (
-                  <Button variant="contained" component="label">
-                    <AddPhotoAlternateIcon />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      hidden
-                      multiple
-                      onChange={handleImageUpload}
-                    />
-                  </Button>
-                )}
-              </Box>
-            </Box>
-          </Grid>
-          <Grid item xs={4}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Product Status</InputLabel>
-              <Select
-                value={formData.status}
-                onChange={handleChange("status")}
-                label="Product Status"
-              >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Draft">Draft</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={4}>
-            <TextField
-              size="small"
-              label="Price"
-              fullWidth
-              variant="outlined"
-              placeholder="Enter price"
-              value={formData.price}
-              onChange={handleChange("price")}
-              error={!!errors.price}
-              helperText={errors.price}
-            />
-          </Grid>
-          <Grid item xs={4}>
-            <TextField
-              size="small"
-              label="SKU"
-              fullWidth
-              variant="outlined"
-              placeholder="Enter SKU"
-              value={formData.sku}
-              onChange={handleChange("sku")}
-              error={skuError || formData.sku.trim() === ""}
-              helperText={
-                skuError
-                  ? "Invalid SKU"
-                  : checksku
-                    ? "Sku exists, generating new one..."
-                    : formData.sku.trim() === ""
-                      ? "Sku is required"
-                      : ""
-              }
 
-            />
-          </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  label="Description"
+                  size="small"
+                  fullWidth
+                  multiline
+                  rows={4}
+                  variant="outlined"
+                  placeholder="Enter product description"
+                  value={formData.description}
+                  onChange={handleChange("description")}
+                  error={!!errors.description}
+                  helperText={errors.description}
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <Box
+                  sx={{
+                    border: "2px dashed #c4c4c4",
+                    borderRadius: 1,
+                    p: formData?.images?.length > 0 ? 1 : 4,
+                    textAlign: "center",
+                    backgroundColor: "#fafafa",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 2,
+                      justifyContent:
+                        formData?.images?.length > 0 ? "start" : "center",
+                    }}
+                  >
+                    {formData?.images?.map((file, index) => {
+                      let imageUrl = typeof file === "string" ? file : URL.createObjectURL(file);
+                      return (
+                        <Box key={index} sx={{ position: "relative" }}>
+                          <Image src={imageUrl} alt="Preview" width={80} height={80} style={{ borderRadius: 8, objectFit: "cover" }} />
+                          <IconButton onClick={() => removeImage(index)} size="small" sx={{ position: "absolute", top: -5, right: -5, background: "white" }}>
+                            <DeleteIcon fontSize="small" color="error" />
+                          </IconButton>
+                        </Box>
+                      );
+                    })}
+                    {formData.images.length < 5 && (
+                      <Button variant="contained" component="label">
+                        <AddPhotoAlternateIcon />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          multiple
+                          onChange={handleImageUpload}
+                        />
+                      </Button>
+                    )}
+                  </Box>
+                </Box>
+              </Grid>
+
+
+            </Grid>
+          </Paper>
+
+          {/* price */}
+          {options.length == 0 && (<Paper elevation={3}
+            sx={{
+              mt: 5,
+              p: 2,
+
+              backgroundColor: "#ffffff",
+              borderRadius: 2,
+            }}>
+            <Typography variant="p" sx={{ fontWeight: "bold" }}>
+              Pricing
+            </Typography>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+
+
+              <>
+                <Grid item xs={4}>
+                  <TextField
+                    size="small"
+                    label="Price"
+                    fullWidth
+                    variant="outlined"
+                    placeholder="Enter price"
+                    value={formData.price}
+                    onChange={handleChange("price")}
+                    error={!!errors.price}
+                    helperText={errors.price}
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    size="small"
+                    label="Compare Price"
+                    fullWidth
+                    variant="outlined"
+                    placeholder="compare price"
+                    value={formData.cprice}
+                    onChange={handleChange("cprice")}
+                    error={!!errors.cprice}
+                    helperText={errors.cprice}
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    size="small"
+                    label="Cost Price"
+                    fullWidth
+                    variant="outlined"
+                    placeholder="cost price"
+                    value={formData.costprice}
+                    onChange={handleChange("costprice")}
+                    error={!!errors.costprice}
+                    helperText={errors.costprice}
+                  />
+
+                </Grid>
+
+                <Grid item xs={4}>
+                  <FormControlLabel
+                    control={<Checkbox checked={isTaxed} onChange={(e) => setIsTaxed(e.target.checked)} />}
+                    label="Charge tax on this product"
+                  />
+                </Grid>
+
+              </>
+
+            </Grid>
+
+          </Paper>
+          )}
+          {options.length == 0 && (<Paper elevation={3}
+            sx={{
+              mt: 5,
+              p: 2,
+
+              backgroundColor: "#ffffff",
+              borderRadius: 2,
+            }}>
+            <Typography variant="p" sx={{ fontWeight: "bold" }}>
+              Inventory
+            </Typography>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+
+
+              <>
+
+                <Grid item xs={4}>
+                  <TextField
+                    size="small"
+                    label="Barcode"
+                    fullWidth
+                    variant="outlined"
+                    placeholder="Barcode"
+                    value={formData.Barcode}
+                    onChange={handleChange("Barcode")}
+                    error={!!errors.Barcode}
+                    helperText={errors.Barcode}
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    size="small"
+                    label="SKU"
+                    fullWidth
+                    variant="outlined"
+                    placeholder="Enter SKU"
+                    value={formData.sku}
+                    onChange={handleChange("sku")}
+                    error={skuError || checksku}
+                    helperText={
+                      checksku
+                        ? "Sku exists, generating new one..."
+                        : skuError
+                          ? "check availability"
+                          : ""
+                    }
+                    InputProps={{
+                      endAdornment: (
+
+                        <IconButton
+                          onClick={() =>
+                            setFormData((prev) => ({ ...prev, sku: generateRandomSKU() }))
+                          }
+                          edge="end"
+                        >
+
+                        </IconButton>
+
+                      ),
+                    }}
+                  />
+                </Grid>
+              </>
+            </Grid>
+
+          </Paper>
+          )}
+
+
+
+          <Variants
+            editProduct={editProduct}
+            sku={formData?.sku}
+            // 3) We pass in the combined existingOptions (already extracted)
+            existingOptions={existingOptions}
+            extractvariants={extractvariants}
+            existingVariants={variants}
+            handleAddOptions={handleAddOptions}
+            handlremoveOptions={handlremoveOptions}
+            handleaddvariants={handleaddvariants}
+            price={formData?.price}
+            currentProduct={currentProduct}
+            handleRemovedVariants={handleRemovedVariants}
+            images={formData.images[0]}
+            Barcode={formData.Barcode}
+          />
+          <Paper elevation={3}
+            sx={{
+              mt: 5,
+              p: 2,
+
+              backgroundColor: "#ffffff",
+              borderRadius: 2,
+            }}>
+            <Typography variant="p" sx={{ fontWeight: "bold" }}>
+              Search Engine Listing
+            </Typography>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+
+
+              <>
+
+                <Grid item xs={6}>
+                  <TextField
+                    label="Product Slug"
+                    size="small"
+                    fullWidth
+                    variant="outlined"
+                    value={formData.slug || ""}
+                    onChange={handleChange("slug")}
+                    error={slugError || (formData.slug.trim() === "" && !checkingSlug)}
+                    helperText={
+                      checkingSlug
+                        ? "Checking slug availability..."
+                        : slugError
+                          ? "This slug already exists. Generating a new one..."
+                          : formData.slug.trim() === ""
+                            ? "Slug is required"
+                            : ""
+                    }
+                  />
+                </Grid>
+              </>
+            </Grid>
+
+          </Paper>
+
+
+
+
         </Grid>
-      </Paper>
+        <Grid item xs={3} mt={7}>
+          <Paper
+            elevation={3}
+            sx={{
+              p: 4,
+              backgroundColor: "#ffffff",
+              borderRadius: 2,
+            }}
+          >
+            <Grid item xs={12}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Product Status</InputLabel>
+                <Select
+                  value={formData.status}
+                  onChange={handleChange("status")}
+                  label="Product Status"
+                >
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Draft">Draft</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Paper>
+        </Grid>
+
+      </Grid>
+
 
       {/* Variants Section */}
-      <Variants
-        editProduct={editProduct}
-        sku={formData?.sku}
-        // 3) We pass in the combined existingOptions (already extracted)
-        existingOptions={existingOptions}
-        extractvariants={extractvariants}
-        existingVariants={variants}
-        handleAddOptions={handleAddOptions}
-        handlremoveOptions={handlremoveOptions}
-        handleaddvariants={handleaddvariants}
-        price={formData?.price}
-        currentProduct={currentProduct}
 
-        images={formData.images[0]}
-      />
 
       {/* You can add your SAVE button here if desired */}
 

@@ -6,13 +6,30 @@ import axios from 'axios';
 const ECartContext = createContext();
 
 export const useECart = () => useContext(ECartContext);
-
- const ECartProvider = ({ children }) => {
-const [products, setProducts] = useState([]);
+const ECartProvider = ({ children }) => {
+  const [products, setProducts] = useState([]);
+  const [options,setOptions] = useState([]);
+  const [variants,setvariants] = useState([]);
+  const[show,setshow] = useState(false);
+  const [removedVariants, setRemovedVariants] = useState([]);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    price: "",
+    sku: "",
+    images: [],
+    status: "Draft",
+    slug: "",
+    cprice:"",
+    costprice:"",
+    Barcode:""
+  });
 const fetchProducts = async () => {
     try {
       const response = await axios.get("/api/product"); // Adjust the endpoint
       setProducts(response.data.data);
+      setshow(false);
+      localStorage.setItem('add',false)
     } catch (error) {
       console.error("Error fetching products:", error);
     }
@@ -30,13 +47,32 @@ const fetchProducts = async () => {
       }
   }
 
+  const handleReset = () => {
+    setFormData({
+      title: "",
+      description: "",
+      price: "",
+      sku: generateRandomSKU(), // regenerates a new SKU
+      images: [],
+      status: "Draft",
+      slug: "",
+      cprice: "",
+      costprice: "",
+      Barcode: ""
+    });
+    setErrors({});
+    setOptions([]);
+    setvariants([]);
+  };
 
+ 
   return (
     <ECartContext.Provider
       value={{
+        
         products,
         deleteproducts,
-        fetchProducts
+        fetchProducts,show,setshow
       }}
     >
       {children}

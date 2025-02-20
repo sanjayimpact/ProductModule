@@ -6,11 +6,21 @@ const varianSchema = new mongoose.Schema({
   
 
     },
+    compareprice:{
+       type:String,
+    },
     sku:{
         type:String,
  
         unique:true
 
+    },
+    costprice:{
+        type:String,
+    },
+    barcode:{
+      type:String,
+      
     },
     product_id:{
         type:mongoose.Schema.Types.ObjectId,
@@ -33,6 +43,10 @@ const varianSchema = new mongoose.Schema({
     isVariandetails:{
         type:Number,
         default:0
+    },
+    istax:{
+        type:Boolean,
+        default:false
     }
 },{timestamps:true});
 export const Variant = mongoose.models.Variant || mongoose.model('Variant', varianSchema);

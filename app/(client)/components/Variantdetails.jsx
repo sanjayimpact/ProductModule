@@ -12,20 +12,22 @@ import {
   Paper,
   Box,
   Button,
+  IconButton,
 } from "@mui/material";
 import Image from "next/image";
-
+import DeleteIcon from "@mui/icons-material/Delete";
 const InventoryTable = ({
   options,
   handleaddvariants,
   price,
   images,
-  
+  Barcode,
+  handleRemovedVariants,
   currentProduct,sku
 }) => {
   const [groupedOptions, setGroupedOptions] = useState({});
   const [variantData, setVariantData] = useState([]);
-
+  const [removedVariants, setRemovedVariants] = useState([]);
   // ✅ Convert uploaded image to URL (For preview purposes)
 
 
@@ -44,27 +46,30 @@ const InventoryTable = ({
   // ✅ When currentProduct.variants exist, map them properly into variantData
   useEffect(() => {
     if (currentProduct?.variants?.length) {
-     
+ 
   
-      const formattedVariants = currentProduct.variants.map((variant, index) => ({
-        id: variant._id || index, // Use _id if available
-        attributes: variant.variantDetails
-          ? variant.variantDetails.reduce((acc, detail) => {
-              return { ...acc, ...detail.option_values }; // Merging attributes
-            }, {})
-          : {},
-        preview: variant.variant_image || "",
-        image: variant.variant_image || "",
-        price: variant.price || price || 0,
-        stock: variant.stock_quantity || 0,
-        sku: variant.sku || sku || "",
-      }));
-
+      const formattedVariants = currentProduct.variants.map((variant, index) => {
+      
+  
+        return {
+          id: variant._id || index, // Use _id if available, otherwise index
+          attributes: variant.variantDetails
+            ? variant.variantDetails.reduce((acc, detail) => {
+                return { ...acc, ...detail.option_values }; // Merging attributes
+              }, {})
+            : {},
+          preview: variant.variant_image || "",
+          image: variant.variant_image || "",
+          price: variant.price || price || 0,
+          stock: variant.stock_quantity || 0,
+          sku: variant.sku || sku || "",
+          barcode: Barcode || variant.barcode || "",
+        };
+      });
   
       setVariantData(formattedVariants);
       generateVariants();
     } else {
-     
       generateVariants(); // If no variants exist, generate new ones
     }
   }, [currentProduct, groupedOptions]);
@@ -96,7 +101,7 @@ const generateVariants = () => {
     const existingVariant = currentProduct?.variants?.[index];
 
     return {
-      id: index,
+      id: existingVariant?._id,
       attributes: variantObject,
       image: "", // Will be updated when user uploads new image
       preview: existingVariant?.variant_image || "", // ✅ Show database image in preview
@@ -139,11 +144,32 @@ const generateVariants = () => {
   };
 
   // ✅ Send updated variant data to parent component
+
+  const handledelete = (index,id) => {
+   
+    setRemovedVariants((prev) => [...prev, id]);
+    const variantToDelete = variantData[index];
+
+    
+    // Store the entire variant object in removedVariants if not already stored
+
+    
+    // Remove the variant from the local state
+    setVariantData((prevVariants) => prevVariants.filter((_, i) => i !== index));
+  };
+  
+  useEffect(() => {
+    if (handleRemovedVariants) {
+      handleRemovedVariants(removedVariants);
+    }
+  }, [removedVariants, handleRemovedVariants]);
   useEffect(() => {
   
     handleaddvariants(variantData);
  
   }, [variantData]);
+
+
 
   return (
     <Box sx={{ mt: 5 }}>
@@ -163,14 +189,19 @@ const generateVariants = () => {
               <TableCell>
                 <Typography variant="body2" fontWeight="bold">Price</Typography>
               </TableCell>
+              
               <TableCell>
                 <Typography variant="body2" fontWeight="bold">Available Stock</Typography>
               </TableCell>
+           
            
                 <TableCell>
                   <Typography variant="body2" fontWeight="bold">SKU</Typography>
                 </TableCell>
             
+              <TableCell>
+                <Typography variant="body2" fontWeight="bold">BarCode</Typography>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -251,6 +282,20 @@ const generateVariants = () => {
     onChange={(e) => handleChange(index, "sku", e.target.value)}
     inputProps={{ style: { textAlign: "center" } }}
   />
+</TableCell>
+                  <TableCell>
+  <TextField 
+    variant="outlined"
+    size="small"
+    value={Barcode||variant.Barcode}
+    onChange={(e) => handleChange(index, "barcode", e.target.value)}
+  
+  />
+</TableCell>
+<TableCell>
+<IconButton onClick={()=>handledelete(index,variant.id)} color="error"  size="small">
+                    <DeleteIcon />
+                  </IconButton>
 </TableCell>
 
                   
