@@ -256,7 +256,7 @@ export const PATCH = async (req, res) => {
 
     // Parse the incoming FormData
     const data = await req.formData();
-
+ 
     // Extract product fields from FormData
     const id = data.get("productId");
     const title = data.get("title");
@@ -265,8 +265,12 @@ export const PATCH = async (req, res) => {
     const status = data.get("status");
     const sku = data.get("sku");
     const slug = data.get("slug");
+    const tax = data.get("tax");
+    const costprice = data.get("costprice");
+    const cprice = data.get("cprice");
+    const barcode = data.get("barcode");
 
-  
+ 
     // Check if the product exists
     const product = await Product.findById(id);
     if (!product) {
@@ -329,7 +333,12 @@ export const PATCH = async (req, res) => {
           variant_image: "",
           sku: sku || existingVariants[0].sku,
           isVariandetails: 0,
-          isdefault:true
+          isdefault:true,
+          costprice:costprice,
+          compareprice:cprice,
+          barcode:barcode,
+          
+istax:tax
         });
         await Variantdetail.findOneAndUpdate(
           { variant_id: lastVariantId },
@@ -390,6 +399,10 @@ export const PATCH = async (req, res) => {
          
            if(updateVariant){
                 updateVariant.isVariandetails=0;
+                updateVariant.costprice=costprice;
+                updateVariant.compareprice=cprice;
+                updateVariant.barcode =barcode;
+                updateVariant.istax=tax;
                 await updateVariant.save();
   
            }
@@ -461,7 +474,12 @@ export const PATCH = async (req, res) => {
           stock_quantity: variantStock,
           variant_image: variantImage,
           sku: variantsSku,
-          isVariandetails: 1
+          isVariandetails: 1,     
+          costprice:costprice,
+          compareprice:cprice,
+          barcode:barcode,
+          
+istax:tax
         });
         await Variantdetail.create({
           variant_id: newVariant._id,
@@ -477,6 +495,10 @@ export const PATCH = async (req, res) => {
             stock_quantity: variantStock,
             variant_image: variantImage,
             sku: variantsSku,
+            istax:tax,     
+            costprice:costprice,
+            compareprice:cprice,
+            barcode:barcode,
             isVariandetails: Object.keys(attributes).length > 0 ? 1 : 0,
           },
           { new: true}
