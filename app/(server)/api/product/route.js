@@ -34,7 +34,8 @@ export const POST = async (req, res) => {
     const costprice = payload.get("costprice") || "0";
     const Barcode = payload.get("Barcode") || " ";
     const isTax = payload.get("tax");
-    const stock = payload.get("stock");
+    const stocks = payload.get("stocks");
+    console.log(payload);
     // ✅ Process Images and Save Them Locally
     let featuredFilePaths = [];
     for (let [key, file] of payload.entries()) {
@@ -86,7 +87,7 @@ export const POST = async (req, res) => {
     if (!payload.has("variantdata[0][price]")) {
       // No variant data provided – create a default empty variant.
       const variantPrice = price;
-      const variantStock = stock;
+      const variantStock = stocks;
       const variantImage = "";
      
       const attributes = {}; // no attributes
@@ -163,7 +164,8 @@ export const POST = async (req, res) => {
           stock_quantity: variantStock,
           variant_image: variantImage,
           isVariandetails: isVariandetails,
-          istax:isTax 
+          istax:isTax,
+          isdefault:variantIndex===0?true:false 
         });
         await newVariant.save();
 
@@ -173,6 +175,7 @@ export const POST = async (req, res) => {
           variant_id: newVariant._id,
           Options: Object.keys(attributes), // e.g., ["color", "size"]
           option_values: attributes, // e.g., { color: "red", size: "l" }
+          isdefault:variantIndex===0?true:false 
         });
         await variantDetail.save();
 
@@ -263,6 +266,7 @@ export const PATCH = async (req, res) => {
     const sku = data.get("sku");
     const slug = data.get("slug");
 
+  
     // Check if the product exists
     const product = await Product.findById(id);
     if (!product) {
@@ -295,7 +299,7 @@ export const PATCH = async (req, res) => {
       updatedProduct.featured_image = [...product.featured_image, ...featuredFilePaths];
     }
 
-    // Process removed images
+    // Process removed images in product one
     const removedImages = [];
     let removeImgIndex = 0;
     while (data.has(`removedImages[${removeImgIndex}]`)) {
@@ -311,7 +315,8 @@ export const PATCH = async (req, res) => {
     // Save the updated product
     await Product.findByIdAndUpdate(id, updatedProduct);
 
-    // Process removed variants
+    // Process removed variants by id single variants
+    let removevariantIdsToDelete = [];
     const removeVariations = data.getAll("removeVariations");
     if (removeVariations.length > 0) {
       const existingVariants = await Variant.find({ product_id: id });
@@ -335,30 +340,32 @@ export const PATCH = async (req, res) => {
           }
         );
       }
+    
       await Variantdetail.deleteMany({ variant_id: { $in: removeVariations } ,isdefault: false });
       await Variant.deleteMany({ _id: { $in: removeVariations },isdefault: false  });
     }
 
 
-    //delete usign options
+
+    //delete multuple options
 
     const removeOptions = {};
     let removeIndex = 0;
+    
     while (data.has(`removeoptions[${removeIndex}][name]`)) {
       const optionName = data.get(`removeoptions[${removeIndex}][name]`);
       let removedValues = [];
-
+    
       let valueIndex = 0;
       while (data.has(`removeoptions[${removeIndex}][values][${valueIndex}]`)) {
         removedValues.push(data.get(`removeoptions[${removeIndex}][values][${valueIndex}]`));
         valueIndex++;
       }
-
+    // making a object of the values with the option name
       removeOptions[optionName] = removedValues;
       removeIndex++;
     }
-
-
+ 
     // ✅ Delete Variants that Match Removed Options
     if (Object.keys(removeOptions).length > 0) {
       for (const [optionName, removedValues] of Object.entries(removeOptions)) {
@@ -369,20 +376,43 @@ export const PATCH = async (req, res) => {
 
         if (variantsToDelete.length > 0) {
           // Extract variant IDs to delete
-          const variantIdsToDelete = variantsToDelete.map((v) => v.variant_id);
+          const variantIdsToDelete = variantsToDelete.map((v) => v.variant_id.toString());
+          removevariantIdsToDelete.push(...variantIdsToDelete);
+          if (variantIdsToDelete.length > 0) {
+         
+            const get = await Variant.deleteMany({ _id: { $in: variantIdsToDelete },isdefault:false });
+            
+        
+           const details =  await Variantdetail.deleteMany({ variant_id: { $in: variantIdsToDelete },isdefault:false }); // Deletes Variant details
+           const updateVariant  = await Variant.findOne({_id:{$in:variantIdsToDelete},isdefault:true})
+        
+            const updateDetails  = await Variantdetail.findOne({variant_id:{$in:variantIdsToDelete},isdefault:true})
+         
+           if(updateVariant){
+                updateVariant.isVariandetails=0;
+                await updateVariant.save();
+  
+           }
+           if(updateDetails){
+            
+              updateDetails.Options=[],
+              updateDetails.option_values={}
+              await updateDetails.save();
+         
           
-          // Delete the variants from both collections
-          await Variant.deleteMany({ _id: { $in: variantIdsToDelete },isdefault: false });
-     
-          await Variantdetail.deleteMany({ variant_id: { $in: variantIdsToDelete },isdefault: false });
-
+           }
+          
        
+          
+          }
         }
       }
+   
     }
 
 
-    // Process updated or new variants
+
+// update the variant data
     let variantIndex = 0;
     while (data.has(`variantdata[${variantIndex}][price]`)) {
       const variantId = data.get(`variantdata[${variantIndex}][id]`);
@@ -391,8 +421,9 @@ export const PATCH = async (req, res) => {
       const variantsSku =
         data.get(`variantdata[${variantIndex}][sku]`) || `${sku}-${variantIndex}`;
 
-      // Process variant image
       let variantImage = "";
+
+      // update the variant image
       const file = data.get(`variantdata[${variantIndex}][image]`);
       if (file && typeof file.arrayBuffer === "function") {
         const bytes = await file.arrayBuffer();
@@ -422,7 +453,8 @@ export const PATCH = async (req, res) => {
       }
 
       // If variantId is "null" or not provided, create a new variant & variantdetail
-      if (!variantId || variantId === "null") {
+      if ((!variantId || variantId === "null") && !removevariantIdsToDelete.includes(variantId)) {
+
         const newVariant = await Variant.create({
           product_id: id,
           price: variantPrice,
@@ -436,56 +468,35 @@ export const PATCH = async (req, res) => {
           Options: Object.keys(attributes),
           option_values: attributes,
         });
-      } else {
-        // Otherwise, update the existing variant and its details
-        const updatedVariant = await Variant.findOneAndUpdate(
+      } else if(!removevariantIdsToDelete.includes(variantId)){
+      
+           const updatedVariant = await Variant.findOneAndUpdate(
           { _id: variantId },
-          {
+          { prodct_id:id,
             price: variantPrice,
             stock_quantity: variantStock,
             variant_image: variantImage,
             sku: variantsSku,
             isVariandetails: Object.keys(attributes).length > 0 ? 1 : 0,
           },
-          { new: true }
+          { new: true}
         );
-        await Variantdetail.findOneAndUpdate(
+      
+      const updatedetails =   await Variantdetail.findOneAndUpdate(
           { variant_id: updatedVariant._id },
           {
             Options: Object.keys(attributes),
             option_values: attributes,
           },
-          { new: true, upsert: true }
+          { new: true }
+
         );
+        console.log(updatedetails,'below one')
       }
       variantIndex++;
     }
 
-    // If no variants exist, create a default variant
-    if (variantIndex === 0) {
-      const defaultVariant = await Variant.findOneAndUpdate(
-        { product_id: id },
-        {
-          price: price,
-          stock_quantity: "0",
-          variant_image: "",
-          isVariandetails: 0,
-          isdefault:true,
-          
-isVariandetails:0
-        },
-        { new: true, upsert: true }
-      );
-      await Variantdetail.findOneAndUpdate(
-        { variant_id: defaultVariant._id },
-        {
-          Options: [],
-          option_values: {},
-          isdefault:true
-        },
-        { new: true, upsert: true }
-      );
-    }
+    
 
     return NextResponse.json({ message: "Update Successfully", isSuccess: true });
   } catch (err) {

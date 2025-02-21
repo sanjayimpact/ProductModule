@@ -174,7 +174,7 @@ useEffect(()=>{
         open={snackbarOpen}
         autoHideDuration={800}
         onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <Alert
           severity={iserror ? "error" : "success"}

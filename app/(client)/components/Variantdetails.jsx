@@ -147,11 +147,17 @@ const generateVariants = () => {
 
   const handledelete = (index,id) => {
    
-    setRemovedVariants((prev) => [...prev, id]);
-    const variantToDelete = variantData[index];
+    setRemovedVariants((prev) => {
+      if (id !== undefined && id !== null) {
+        return [...prev.filter((item) => item !== undefined && item !== null), id];
+      }
+      return prev;
+    });
+    
+   
 
     
-    // Store the entire variant object in removedVariants if not already stored
+
 
     
     // Remove the variant from the local state

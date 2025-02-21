@@ -123,7 +123,7 @@ const closeProduct = () => {
         display:'flex',
         justifyContent:'center',
         position:'absolute',
-        width:"100%",
+        width:"50%",
         top:'11px',
         zIndex:999
        }}>

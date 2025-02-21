@@ -23,7 +23,7 @@ import InventoryTable from "./Variantdetails";
 
 const Variants = ({handleAddOptions, handleaddvariants,price,Barcode,images,editProduct, existingOptions,handlremoveOptions,extractvariants,currentProduct ,handleRemovedVariants,sku}) => {
 
-console.log(existingOptions);
+
   const [addOption, setAddOption] = useState(false);
   const [options, setOptions] = useState([]);
   const[remove,setremove] = useState([]);

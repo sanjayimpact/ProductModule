@@ -343,6 +343,7 @@ export default function EditProductForm({ currentProduct }) {
 
 
     // Append removed variant data from removevariation state
+   
     if (removevariation.length > 0) {
       removevariation.forEach((item) => {
         formDataToSend.append('removeVariations', item);
@@ -838,7 +839,7 @@ export default function EditProductForm({ currentProduct }) {
         open={snackbarOpen}
         autoHideDuration={3000}
         onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <Alert
           severity={iserror ? "error" : "success"}
