@@ -613,6 +613,8 @@ const goback = ()=>{
         images={formData.images[0]}
         sku = {formData.sku}
         Barcode={formData.Barcode}
+        stock = {formData?.stocks}
+
 
       />
         <Paper  elevation={3}

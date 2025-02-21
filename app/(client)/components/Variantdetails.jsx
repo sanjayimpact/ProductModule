@@ -23,7 +23,7 @@ const InventoryTable = ({
   images,
   Barcode,
   handleRemovedVariants,
-  currentProduct,sku
+  currentProduct,sku,stock 
 }) => {
   const [groupedOptions, setGroupedOptions] = useState({});
   const [variantData, setVariantData] = useState([]);
@@ -61,7 +61,7 @@ const InventoryTable = ({
           preview: variant.variant_image || "",
           image: variant.variant_image || "",
           price: variant.price || price || 0,
-          stock: variant.stock_quantity || 0,
+          stock: variant.stock_quantity || stock ||0,
           sku: variant.sku || sku || "",
           barcode: Barcode || variant.barcode || "",
         };
@@ -272,7 +272,7 @@ const generateVariants = () => {
                       variant="outlined"
                       size="small"
                       type="number"
-                      value={variant.stock}
+                      value={ variant.stock}
                       onChange={(e) => handleChange(index, "stock", e.target.value)}
                       inputProps={{ min: 0, style: { textAlign: "center" } }}
                     />
@@ -293,7 +293,7 @@ const generateVariants = () => {
   <TextField 
     variant="outlined"
     size="small"
-    value={Barcode||variant.Barcode}
+    value={ variant.Barcode }
     onChange={(e) => handleChange(index, "barcode", e.target.value)}
   
   />

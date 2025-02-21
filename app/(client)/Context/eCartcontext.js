@@ -11,19 +11,8 @@ const ECartProvider = ({ children }) => {
   const [options,setOptions] = useState([]);
   const [variants,setvariants] = useState([]);
   const[show,setshow] = useState(false);
-  const [removedVariants, setRemovedVariants] = useState([]);
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    price: "",
-    sku: "",
-    images: [],
-    status: "Draft",
-    slug: "",
-    cprice:"",
-    costprice:"",
-    Barcode:""
-  });
+
+
 const fetchProducts = async () => {
     try {
       const response = await axios.get("/api/product"); // Adjust the endpoint

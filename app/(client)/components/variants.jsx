@@ -21,7 +21,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import InventoryTable from "./Variantdetails";
 
-const Variants = ({handleAddOptions, handleaddvariants,price,Barcode,images,editProduct, existingOptions,handlremoveOptions,extractvariants,currentProduct ,handleRemovedVariants,sku}) => {
+const Variants = ({handleAddOptions, handleaddvariants,price,Barcode,images,editProduct, existingOptions,handlremoveOptions,extractvariants,currentProduct ,handleRemovedVariants,sku,stock }) => {
 
 
   const [addOption, setAddOption] = useState(false);
@@ -373,7 +373,7 @@ const Variants = ({handleAddOptions, handleaddvariants,price,Barcode,images,edit
           )}
         </Grid>
       </Paper>
-      {options.length > 0 && <InventoryTable Barcode  ={Barcode}  sku={sku} currentProduct={currentProduct} handleRemovedVariants={handleRemovedVariants} extractvariants={extractvariants} handleaddvariants={handleaddvariants} options={options} price={price} images = {images} editProduct = {editProduct}/>}
+      {options.length > 0 && <InventoryTable Barcode  ={Barcode} stock={stock }  sku={sku} currentProduct={currentProduct} handleRemovedVariants={handleRemovedVariants} extractvariants={extractvariants} handleaddvariants={handleaddvariants} options={options} price={price} images = {images} editProduct = {editProduct}/>}
     </>
   );
 };

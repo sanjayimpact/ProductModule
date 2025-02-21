@@ -256,7 +256,8 @@ export const PATCH = async (req, res) => {
 
     // Parse the incoming FormData
     const data = await req.formData();
- 
+ console.log(data);
+ return;
     // Extract product fields from FormData
     const id = data.get("productId");
     const title = data.get("title");
