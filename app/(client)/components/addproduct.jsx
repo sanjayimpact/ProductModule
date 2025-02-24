@@ -18,7 +18,8 @@ import {
   Alert,
   InputAdornment,
   FormControlLabel,
-  Checkbox, // <-- Added InputAdornment here
+  Checkbox,
+  Autocomplete,// <-- Added InputAdornment here
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
@@ -30,11 +31,18 @@ import UnsavedProductBar from "./unsavedBar";
 import { generateRandomSKU } from "../utils/helper";
 import { useECart } from "../Context/eCartcontext";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
+import CheckBoxIcon from "@mui/icons-material/CheckBox";
+
+const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
+const checkedIcon = <CheckBoxIcon fontSize="small" />;
+
 
 
 // Custom hook to debounce a value
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
+
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedValue(value), delay);
@@ -45,9 +53,11 @@ function useDebounce(value, delay) {
 }
 
 export default function ProductForm() {
-const{setshow} = useECart();
+const{setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,selectedVendor, setSelectedVendor,selectedTags, setSelectedTags,setinputProducttype,setProductType,selectedProducttype,allProductType,getproducttype,productinput} = useECart();
 
   
+
+
 
   const router = useRouter();
 
@@ -63,8 +73,10 @@ const{setshow} = useECart();
     cprice:"",
     costprice:"",
     Barcode:"",
-    stocks:""
+    stocks:"",
+    tags:""
   });
+  const[inputvalue,setInputvalue] = useState(null);
   const [isTaxed, setIsTaxed] = useState(false);
   const [iserror, seterror] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -205,6 +217,36 @@ const{setshow} = useECart();
     validate(field, value);
   };
 
+//for vendor
+  const handlevendor = (e)=>{
+    const newValue = e?.target?.value;
+    console.log(newValue);
+ 
+    setvendorinput(newValue)
+  }
+
+  //for tags
+  const handleinput = (e)=>{
+
+    const newValue = e.target.value;
+
+const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
+
+    setInputvalue (values);
+   
+  }
+
+  //for producttype
+
+  const  handleproductype=(e)=>{
+    const newValue = e?.target?.value;
+    console.log(newValue);
+ 
+
+setinputProducttype (newValue);
+  }
+
+
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files);
     setFormData((prev) => ({ ...prev, images: [...prev.images, ...files] }));
@@ -228,6 +270,7 @@ const{setshow} = useECart();
   };
 
   const handleSubmit = async () => {
+
     const requiredFields = ["title","price"];
     let newErrors = {};
 
@@ -256,6 +299,11 @@ const{setshow} = useECart();
     formDataToSend.append("Barcode",formData?.Barcode);
     formDataToSend.append("tax",isTaxed);
     formDataToSend.append("stocks",formData?.stocks);
+    formDataToSend.append("brand",selectedVendor?._id);
+    formDataToSend.append("product_type",selectedProducttype?._id);
+
+    formDataToSend.append("tags",selectedTags.map((tag)=>tag?._id));
+
     
 
     // Append images
@@ -293,7 +341,8 @@ const{setshow} = useECart();
       if (data?.isSuccess) {
         setSnackbarOpen(true);
         setMessage(data?.message);
-        
+        setSelectedVendor('');
+        setSelectedTags([]);
         localStorage.setItem("activeTab", "product");
         setTimeout(()=>{
           router.push("/products");
@@ -322,6 +371,9 @@ const goback = ()=>{
   }, [debouncedSlug]);
 
   useEffect(() => {
+    getTags();
+    getBrands();
+    getproducttype();
     if (debouncedSku) {
       checkSkuAvailability(debouncedSku);
     }
@@ -334,6 +386,37 @@ const goback = ()=>{
     }
   }, []);
 
+
+const Addnewtags=async()=>{
+ try{
+   let addtag = await axios.post("/api/tag",{tag_name:inputvalue});
+
+getTags();
+ }catch(err){
+
+ }
+
+ 
+}
+const Addnewvendor = async()=>{
+  try{
+    let addbrand= await axios.post("/api/brand",{brand_name:vendorinput});
+    console.log(addbrand);
+    getBrands();
+  }catch(err){
+ 
+  }
+}
+
+const Addnewpt =async()=>{
+  try{
+    let addbrand= await axios.post("/api/product_type",{product_type_name:productinput});
+    console.log(addbrand);
+   getproducttype();
+  }catch(err){
+ 
+  }
+}
   
   return (
     <>
@@ -703,43 +786,120 @@ Product organization
      
       <Grid item xs={12} mt={2.5}>
      <Grid>
-     <TextField
-              size="small"
-              label="Type"
-              fullWidth
-              variant="outlined"
-              placeholder="Type"
-              value={formData.type}
-              onChange={handleChange("type")}
-              error={!!errors.type}
-              helperText={errors.type}
-            />
+    
+ <Autocomplete
+     size="small" 
+  options={allProductType}
+  value={selectedProducttype}
+  getOptionLabel={(option) => option.product_type_name || ""}
+  onInputChange={handleproductype}
+  onChange={(_, newValue) => {
+    setProductType(newValue);
+  }}
+  noOptionsText={
+    <Button onClick={ Addnewpt}>
+      Add {productinput}
+    </Button>
+  }
+  renderOption={(props, option) => {
+    const { key, ...restProps } = props;
+    return (
+      <li key={key} {...restProps}>
+        {option?.product_type_name}
+      </li>
+    );
+  }}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      variant="outlined"
+      label="Product type"
+      placeholder="Product type..."
+    />
+  )}
+/>
+
+
      </Grid>
      <Grid mt={4}>
-     <TextField
-              size="small"
-              label="Vendor"
-              fullWidth
-              variant="outlined"
-              placeholder="Vendor"
-              value={formData.type}
-              onChange={handleChange("vendor")}
-              error={!!errors.vendor}
-              helperText={errors.vendor}
-            />
+     <Autocomplete
+     size="small" 
+  options={allbrands}
+  value={selectedVendor}
+  getOptionLabel={(option) => option.brand_name || ""}
+  onInputChange={handlevendor}
+  onChange={(_, newValue) => {
+    setSelectedVendor(newValue);
+  }}
+  noOptionsText={
+    <Button onClick={ Addnewvendor}>
+      Add {vendorinput}
+    </Button>
+  }
+  renderOption={(props, option) => {
+    const { key, ...restProps } = props;
+    return (
+      <li key={key} {...restProps}>
+        {option?.brand_name}
+      </li>
+    );
+  }}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      variant="outlined"
+      label="Vendor"
+      placeholder="Select Vendor..."
+    />
+  )}
+/>
+
      </Grid>
      <Grid mt={4}>
-     <TextField
-              size="small"
-              label="Tags"
-              fullWidth
-              variant="outlined"
-              placeholder="Tags"
-              value={formData.tags}
-              onChange={handleChange("tags")}
-              error={!!errors.tags}
-              helperText={errors.tags}
-            />
+    
+           
+           <Autocomplete
+           size="small"
+  multiple
+  options={alltags}
+  value={selectedTags}
+  getOptionLabel={(option) => option.tag_name || ""}
+  onInputChange={handleinput}
+  onChange={(_, newValue) => {
+    setSelectedTags(newValue);
+  }}
+  noOptionsText={
+    <Button
+      onClick={Addnewtags}
+    >
+      Add {inputvalue}
+    </Button>
+  }
+  renderOption={(props, option, { selected }) => {
+    // Destructure the key out and pass it explicitly.
+    const { key, ...restProps } = props;
+    return (
+      <li key={key} {...restProps}>
+        <Checkbox
+          icon={icon}
+          checkedIcon={checkedIcon}
+          style={{ marginRight: 8 }}
+          checked={selected}
+        />
+        {option.tag_name}
+      </li>
+    );
+  }}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      variant="outlined"
+      label="Tags"
+      placeholder="Select tags..."
+    />
+  )}
+/>
+
      </Grid>
          
           </Grid>

@@ -11,7 +11,15 @@ const ECartProvider = ({ children }) => {
   const [options,setOptions] = useState([]);
   const [variants,setvariants] = useState([]);
   const[show,setshow] = useState(false);
+  const[alltags,setalltags]  =useState([])
+  const[ allProductType,setallProductType]  =useState([])
 
+  const[vendorinput,setvendorinput] = useState(null);
+  const[allbrands,setallbrands] = useState([]);
+  const [selectedVendor, setSelectedVendor] = useState("");
+const [selectedTags, setSelectedTags] = useState([]);
+const[productinput,setinputProducttype] = useState(null);
+const [selectedProducttype,setProductType] = useState(null);
 
 const fetchProducts = async () => {
     try {
@@ -36,6 +44,34 @@ const fetchProducts = async () => {
       }
   }
 
+const getTags = async()=>{
+  try{
+       let response = await axios.get("/api/tag");
+
+       setalltags(response?.data?.data);
+  }catch(err){
+    console.error("Error fetching tags:", err);
+  }
+}
+
+
+const getBrands = async()=>{
+  try{
+    let response = await axios.get("/api/brand");
+    setallbrands(response?.data?.data);
+  }catch(err){
+    console.log(err);
+  }
+}
+const getproducttype = async()=>{
+  try{
+    let response = await axios.get("/api/product_type");
+    setallProductType(response?.data?.data);
+  }catch(err){
+    console.log(err);
+  }
+}
+
   const handleReset = () => {
     setFormData({
       title: "",
@@ -54,6 +90,7 @@ const fetchProducts = async () => {
     setvariants([]);
   };
 
+
  
   return (
     <ECartContext.Provider
@@ -61,7 +98,7 @@ const fetchProducts = async () => {
         
         products,
         deleteproducts,
-        fetchProducts,show,setshow
+        fetchProducts,show,setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,selectedVendor, setSelectedVendor,selectedTags, setSelectedTags,setinputProducttype,selectedProducttype,setProductType,allProductType,getproducttype,productinput
       }}
     >
       {children}

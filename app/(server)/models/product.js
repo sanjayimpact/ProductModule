@@ -30,19 +30,17 @@ const productSchema = new mongoose.Schema({
         default:'Draft'
     },
     brand_id:{
-        type:Number,
+        type:mongoose.Schema.Types.ObjectId,
 
-        default:1
+        ref:'Brand'
     },
     tag_id:[{
-        type:Number,
-     
-        default:1
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'Tag',
     }],
     producttype_id:{
-        type:Number,
-      
-        default:1   
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'ProductType'
     }
 
 },{timestamps:true})

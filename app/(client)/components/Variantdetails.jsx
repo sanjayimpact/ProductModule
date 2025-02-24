@@ -29,7 +29,7 @@ const InventoryTable = ({
   const [variantData, setVariantData] = useState([]);
   const [removedVariants, setRemovedVariants] = useState([]);
   // ✅ Convert uploaded image to URL (For preview purposes)
-
+console.log(Barcode,sku,stock);
 
   // ✅ Group options dynamically when options change
   useEffect(() => {
@@ -176,7 +176,7 @@ const generateVariants = () => {
   }, [variantData]);
 
 
-
+console.log(variantData,'all')
   return (
     <Box sx={{ mt: 5 }}>
       <TableContainer component={Paper} sx={{ mt: 5 }}>
@@ -272,7 +272,7 @@ const generateVariants = () => {
                       variant="outlined"
                       size="small"
                       type="number"
-                      value={ variant.stock}
+                      value={variant.stock ||stock}
                       onChange={(e) => handleChange(index, "stock", e.target.value)}
                       inputProps={{ min: 0, style: { textAlign: "center" } }}
                     />
@@ -293,7 +293,7 @@ const generateVariants = () => {
   <TextField 
     variant="outlined"
     size="small"
-    value={ variant.Barcode }
+    value={ variant.barcode || Barcode }
     onChange={(e) => handleChange(index, "barcode", e.target.value)}
   
   />

@@ -21,7 +21,14 @@ export const POST = async (req, res) => {
     await connectDB();
     let isVariandetails;
     // ✅ Get FormData
+
     let payload = await req.formData();
+ 
+    let tags = payload.get("tags");
+    let productType = payload.get("product_type");
+    let alltags = tags.split(",");
+    const  brand = payload.get("brand");
+
 
     // ✅ Extract Product Data
     const title = payload.get("title");
@@ -58,6 +65,9 @@ export const POST = async (req, res) => {
       product_description: description,
       product_status: status,
       featured_image: featuredFilePaths,
+      tag_id: alltags,
+      brand_id: brand,
+      producttype_id: productType,
     });
     await product.save();
 
@@ -256,8 +266,7 @@ export const PATCH = async (req, res) => {
 
     // Parse the incoming FormData
     const data = await req.formData();
- console.log(data);
- return;
+console.log(data);
     // Extract product fields from FormData
     const id = data.get("productId");
     const title = data.get("title");

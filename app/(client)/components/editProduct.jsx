@@ -720,6 +720,20 @@ export default function EditProductForm({ currentProduct }) {
                       ),
                     }}
                   />
+                          <Grid item xs = {4}>
+                            <TextField
+                                size="small"
+                                label="Stock Quantity"
+                                fullWidth
+                                variant="outlined"
+                                placeholder="Stock"
+                                value={formData.stocks}
+                                onChange={handleChange("stocks")}
+                                error={!!errors.stocks}
+                                helperText={errors.stocks}
+                              />
+                  
+                            </Grid>
                 </Grid>
               </>
             </Grid>
