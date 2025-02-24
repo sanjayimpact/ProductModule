@@ -19,4 +19,4 @@ const locationSchema = new mongoose.Schema({
     }
 
 
-})
+},{timestamps:true})
