@@ -18,6 +18,7 @@ import {
   Alert,
   FormControlLabel,
   Checkbox,
+  Autocomplete,
 
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -28,7 +29,8 @@ import Variants from "./variants";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useECart } from "../Context/eCartcontext";
-
+import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 // Custom hook to debounce a value
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -43,12 +45,15 @@ function useDebounce(value, delay) {
 
 export default function EditProductForm({ currentProduct }) {
 
-  const { setshow } = useECart();
+  const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
+  const checkedIcon = <CheckBoxIcon fontSize="small" />;
+
+  const { setshow, allbrands, vendorinput, selectedVendor, setvendorinput, setSelectedVendor, getBrands, selectedTags, setSelectedTags, setinputProducttype, setProductType, selectedProducttype, allProductType, getproducttype, productinput, getTags, alltags, inputvalue, setInputvalue } = useECart();
   const router = useRouter();
 
   const [editProduct, seteditProduct] = useState(true);
   const [lastCheckedSlug, setLastCheckedSlug] = useState("")
-
+  const[removetag,setremovetag] = useState([]);
 
 
   // Initialize form data with currentProduct (if editing)
@@ -62,11 +67,15 @@ export default function EditProductForm({ currentProduct }) {
     status: currentProduct?.product_status || "",
     slug: currentProduct?.product_slug || "",
     costprice: currentProduct?.variants?.[0]?.costprice || "",
-    cprice: currentProduct?.variants?.[0]?.
-      compareprice || "",
-    Barcode: currentProduct?.variants?.[0]?.barcode
+    cprice: currentProduct?.variants?.[0]?.compareprice || "",
+    Barcode: currentProduct?.variants?.[0]?.barcode,
+    stocks: currentProduct?.variants?.[0]?.stock_quantity || 0,
+    brandName: currentProduct?.brand_id?.brand_name
+
+
   });
   const [removedImages, setRemovedImages] = useState([]);
+
   // States for errors, messages, etc. (unchanged)
   const [iserror, seterror] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -95,8 +104,78 @@ export default function EditProductForm({ currentProduct }) {
   // const computeSku = formData.sku.toLowerCase().trim().replace(/\s+/g, "-");
   // const debouncedSku = useDebounce(computeSku, 500);
 
+  const handlevendor = (e) => {
+    const newValue = e?.target?.value;
+    console.log(newValue);
+
+    setvendorinput(newValue)
+  }
+  const handleproductype = (e) => {
+    const newValue = e?.target?.value;
+    console.log(newValue);
+
+
+    setinputProducttype(newValue);
+  }
+  const handleinput = (e) => {
+
+    const newValue = e.target.value;
+
+    const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
+
+    setInputvalue(values);
+
+  }
+  const handleTagChange = (_, newValue) => {
+    // Find removed tag(s) by comparing old and new arrays
+    const removedTags = selectedTags.find(tag => !newValue.includes(tag));
+  
+    if (removedTags) {
+      setremovetag((prev) => [...prev, removedTags]); // Store removed tag
+    }
+  
+    setSelectedTags(newValue); // Update selected tags
+  };
+  
+
+  const Addnewtags = async () => {
+    try {
+      let addtag = await axios.post("/api/tag", { tag_name: inputvalue });
+
+      getTags();
+    } catch (err) {
+
+    }
+
+
+  }
+  const Addnewvendor = async () => {
+    try {
+      let addbrand = await axios.post("/api/brand", { brand_name: vendorinput });
+      console.log(addbrand);
+      getBrands();
+    } catch (err) {
+
+    }
+  }
+
+  const Addnewpt = async () => {
+    try {
+      let addbrand = await axios.post("/api/product_type", { product_type_name: productinput });
+      console.log(addbrand);
+      getproducttype();
+    } catch (err) {
+
+    }
+  }
+
+
 
   useEffect(() => {
+    getBrands();
+    getTags();
+    getproducttype();
+
     if (currentProduct?.variants?.length) {
       // Set the entire variants array in state (unchanged)
       setvariants(currentProduct.variants);
@@ -224,8 +303,7 @@ export default function EditProductForm({ currentProduct }) {
   };
 
 
-  // Handler for the new “options” coming from Variants
-  // (This is where user edits or adds more options in the UI.)
+
 
   const handleAddOptions = (values) => {
     setOptions(values)
@@ -248,7 +326,7 @@ export default function EditProductForm({ currentProduct }) {
 
   // CREATE or UPDATE on submit
   const handleSubmit = async () => {
-    ;
+    
 
     const requiredFields = ["title"];
     let newErrors = {};
@@ -273,6 +351,26 @@ export default function EditProductForm({ currentProduct }) {
     formDataToSend.append("sku", formData.sku);
     formDataToSend.append("status", formData.status);
     formDataToSend.append("slug", formData.slug);
+    formDataToSend.append("costprice", formData.costprice);
+    formDataToSend.append("cprice", formData.cprice);
+    formDataToSend.append("barcode", formData.Barcode);
+    formDataToSend.append("istax", isTaxed);
+    if (selectedVendor?._id && selectedVendor._id.trim() !== "") {
+      formDataToSend.append("brand", selectedVendor._id);
+    }
+    
+    if (selectedProducttype?._id && selectedProducttype._id.trim() !== "") {
+      formDataToSend.append("product_type", selectedProducttype._id);
+    }
+    
+    if(selectedTags.length>0){
+    formDataToSend.append("tags",selectedTags.map((tag)=>tag?._id));
+    }
+    
+    if(removetag.length>0){
+      formDataToSend.append("removetag",removetag.map((item)=>item?._id));
+    }
+
 
     // Append images
 
@@ -343,7 +441,7 @@ export default function EditProductForm({ currentProduct }) {
 
 
     // Append removed variant data from removevariation state
-   
+
     if (removevariation.length > 0) {
       removevariation.forEach((item) => {
         formDataToSend.append('removeVariations', item);
@@ -473,6 +571,12 @@ export default function EditProductForm({ currentProduct }) {
   };
 
   useEffect(() => {
+    setSelectedVendor(allbrands.find((brand) => brand._id === currentProduct?.brand_id?._id) || null);
+    setSelectedTags(selectedTags.length > 0 ? selectedTags : currentProduct?.tag_id || [])
+    setProductType(allProductType.find((item) => currentProduct?.producttype_id?._id === item?._id) || null);
+  }, [currentProduct, allProductType, allbrands]);
+  useEffect(() => {
+
     if (debouncedSlug) {
       checkSlugAvailability(debouncedSlug);
     }
@@ -720,20 +824,23 @@ export default function EditProductForm({ currentProduct }) {
                       ),
                     }}
                   />
-                          <Grid item xs = {4}>
-                            <TextField
-                                size="small"
-                                label="Stock Quantity"
-                                fullWidth
-                                variant="outlined"
-                                placeholder="Stock"
-                                value={formData.stocks}
-                                onChange={handleChange("stocks")}
-                                error={!!errors.stocks}
-                                helperText={errors.stocks}
-                              />
-                  
-                            </Grid>
+
+                </Grid>
+
+
+                <Grid item xs={4}>
+                  <TextField
+                    size="small"
+                    label="Stock Quantity"
+                    fullWidth
+                    variant="outlined"
+                    placeholder="Stock"
+                    value={formData.stocks}
+                    onChange={handleChange("stocks")}
+                    error={!!errors.stocks}
+                    helperText={errors.stocks}
+                  />
+
                 </Grid>
               </>
             </Grid>
@@ -754,6 +861,7 @@ export default function EditProductForm({ currentProduct }) {
             handlremoveOptions={handlremoveOptions}
             handleaddvariants={handleaddvariants}
             price={formData?.price}
+            stock={formData?.stocks}
             currentProduct={currentProduct}
             handleRemovedVariants={handleRemovedVariants}
             images={formData.images[0]}
@@ -808,7 +916,7 @@ export default function EditProductForm({ currentProduct }) {
           <Paper
             elevation={3}
             sx={{
-              p: 4,
+              p: 2,
               backgroundColor: "#ffffff",
               borderRadius: 2,
             }}
@@ -826,6 +934,117 @@ export default function EditProductForm({ currentProduct }) {
                 </Select>
               </FormControl>
             </Grid>
+
+
+
+          </Paper>
+          <Paper
+            elevation={3}
+            sx={{
+              mt: 4,
+              p: 2,
+              backgroundColor: "#ffffff",
+              borderRadius: 2,
+            }}
+          >     <Typography variant="p" sx={{ fontWeight: "bold" }}>
+              Product organization
+            </Typography>
+            <Grid item xs={12} mt={2.5}>
+              <Grid>
+                {/* Product Type Autocomplete */}
+                <Autocomplete
+                  size="small"
+                  options={allProductType}
+                  value={selectedProducttype}
+                  getOptionLabel={(option) => option.product_type_name || ""}
+                  onInputChange={handleproductype}
+                  onChange={(_, newValue) => setProductType(newValue)}
+                  noOptionsText={
+                    <Button onClick={Addnewpt}>
+                      Add {productinput}
+                    </Button>
+                  }
+                  renderOption={(props, option) => {
+                    const { key, ...restProps } = props;
+                    return (
+                      <li key={key} {...restProps}>
+                        {option?.product_type_name}
+                      </li>
+                    );
+                  }}
+                  renderInput={(params) => (
+                    <TextField {...params} variant="outlined" label="Product type" placeholder="Product type..." />
+                  )}
+                />
+
+                {/* Vendor Autocomplete */}
+                <Grid mt={4}>
+                  <Autocomplete
+                    size="small"
+                    options={allbrands}
+                    value={selectedVendor}
+                    getOptionLabel={(option) => option.brand_name || ""}
+                    onInputChange={handlevendor}
+                    onChange={(_, newValue) => setSelectedVendor(newValue)}
+                    noOptionsText={
+                      <Button onClick={Addnewvendor}>
+                        Add {vendorinput}
+                      </Button>
+                    }
+                    renderOption={(props, option) => {
+                      const { key, ...restProps } = props;
+                      return (
+                        <li key={key} {...restProps}>
+                          {option?.brand_name}
+                        </li>
+                      );
+                    }}
+                    renderInput={(params) => (
+                      <TextField {...params} variant="outlined" label="Vendor" placeholder="Select Vendor..." />
+                    )}
+                  />
+                </Grid>
+
+                {/* Tags Autocomplete */}
+                <Grid mt={4}>
+                  <Autocomplete
+                    size="small"
+                    multiple
+                    options={alltags}
+                    value={selectedTags}
+                    getOptionLabel={(option) => option.tag_name || ""}
+                    onInputChange={handleinput}
+                    onChange={handleTagChange}
+                    noOptionsText={
+                      <Button onClick={Addnewtags}>
+                        Add {inputvalue}
+                      </Button>
+                    }
+                renderOption={(props, option, { selected }) => {
+                   // Destructure the key out and pass it explicitly.
+                   const { key, ...restProps } = props;
+                   return (
+                     <li key={key} {...restProps}>
+                       <Checkbox
+                         icon={icon}
+                         checkedIcon={checkedIcon}
+                         style={{ marginRight: 8 }}
+                         checked={selected}
+                       />
+                       {option.tag_name}
+                     </li>
+                   );
+                 }}
+                    renderInput={(params) => (
+                      <TextField {...params} variant="outlined" label="Tags" placeholder="Select tags..." />
+                    )}
+                  />
+                </Grid>
+              </Grid>
+
+
+            </Grid>
+
           </Paper>
         </Grid>
 

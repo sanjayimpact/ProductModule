@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { Product } from "@/app/(server)/models/product";
 import { Variant } from "@/app/(server)/models/variant";
 import { Variantdetail } from "@/app/(server)/models/variantdetail";
-
+import { Brand } from "@/app/(server)/models/brand";
+import { Tag } from "@/app/(server)/models/tags";
+import { ProductType } from "@/app/(server)/models/product_type";
 export const DELETE = async(req,{params})=>{
 
     try{ 
@@ -48,7 +50,8 @@ export const GET = async (req, { params }) => {
       const { id } = params;
   
       // ✅ Fetch the product by ID
-      const product = await Product.findById(id);
+      const product = await Product.findById(id).populate({path:'brand_id'}).populate({path:'tag_id'}).populate({path:'producttype_id'});
+      console.log(product);
       if (!product) {
         return NextResponse.json({ message: "Product not found" ,data:[]}, { status: 200});
       }

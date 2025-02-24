@@ -111,8 +111,8 @@ useEffect(()=>{
         <TableCell  className={Styles.customtable} >
         <div  className={Styles.textstyle}>
         <Image 
-            src={product.featured_image[0] || "/placeholder.jpg"}
-            alt={product.product_name}
+            src={product?.featured_image[0] || "/placeholder.jpg"}
+            alt={product?.product_name}
             width={50}
             height={50}
             style={{ borderRadius: "5px" }}

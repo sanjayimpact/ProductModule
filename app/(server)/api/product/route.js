@@ -25,11 +25,11 @@ export const POST = async (req, res) => {
     let payload = await req.formData();
  
     let tags = payload.get("tags");
-    let productType = payload.get("product_type");
-    let alltags = tags.split(",");
-    const  brand = payload.get("brand");
-
-
+    console.log(payload);
+    let productType = payload.get("product_type") ||' ';
+    let alltags = tags?.split(",");
+    const  brand = payload.get("brand") || ' ';
+ 
     // ✅ Extract Product Data
     const title = payload.get("title");
     const description = payload.get("description");
@@ -65,10 +65,15 @@ export const POST = async (req, res) => {
       product_description: description,
       product_status: status,
       featured_image: featuredFilePaths,
-      tag_id: alltags,
-      brand_id: brand,
-      producttype_id: productType,
+    
+      // Only save `tag_id` if it has valid tags
+      tag_id: alltags && alltags.length > 0 ? alltags : [],
+    
+      // Only save `brand_id` and `producttype_id` if valid, otherwise set to null
+      brand_id: brand && brand.trim() !== "" ? brand : null,
+      producttype_id: productType && productType.trim() !== "" ? productType : null,
     });
+    
     await product.save();
 
     // ✅ Extract Options Dynamically
@@ -267,6 +272,7 @@ export const PATCH = async (req, res) => {
     // Parse the incoming FormData
     const data = await req.formData();
 console.log(data);
+
     // Extract product fields from FormData
     const id = data.get("productId");
     const title = data.get("title");
@@ -275,25 +281,49 @@ console.log(data);
     const status = data.get("status");
     const sku = data.get("sku");
     const slug = data.get("slug");
-    const tax = data.get("tax");
+    const tax = data.get("istax");
     const costprice = data.get("costprice");
     const cprice = data.get("cprice");
     const barcode = data.get("barcode");
-
+    const brandid = data.get("brand");
+    const product_type = data.get("product_type");
  
-    // Check if the product exists
-    const product = await Product.findById(id);
-    if (!product) {
-      return res.status(400).json({ message: "Product not found", isSuccess: false });
-    }
+    const atags = new Set(data.get("tags")?.split(",") || []);
+    const rtags = new Set(data.get("removetag")?.split(",") || []);
 
+
+ // Check if the product exists
+ const product = await Product.findById(id);
+ if (!product) {
+   return res.status(400).json({ message: "Product not found", isSuccess: false });
+  }
+  const existingTags = new Set((product.tag_id || []).map(id => id.toString()));
+
+  // Remove tags that are in rtags
+  rtags.forEach(tag => existingTags.delete(tag.toString())); // Ensure consistency in string format
+  
+  // Add only new unique tags
+  atags.forEach(tag => existingTags.add(tag.toString())); // Convert added tags to strings
+  
+  // Convert back to an array (if needed for MongoDB update)
+  const updatedTags = Array.from(existingTags)
+
+
+
+
+
+    
     // Update product details
     const updatedProduct = {
       product_name: title || product.product_name,
       product_description: description || product.product_description,
       product_slug: slug || product.product_slug,
       product_status: status || product.product_status,
+      brand_id: brandid || product.brand_id,
+      producttype_id: product_type || product.producttype_id,
+      tag_id:updatedTags
     };
+
 
     // Process new images
     const featuredFilePaths = [];

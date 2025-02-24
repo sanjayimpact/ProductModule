@@ -13,7 +13,7 @@ const ECartProvider = ({ children }) => {
   const[show,setshow] = useState(false);
   const[alltags,setalltags]  =useState([])
   const[ allProductType,setallProductType]  =useState([])
-
+ const[inputvalue,setInputvalue] = useState(null);
   const[vendorinput,setvendorinput] = useState(null);
   const[allbrands,setallbrands] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState("");
@@ -98,7 +98,7 @@ const getproducttype = async()=>{
         
         products,
         deleteproducts,
-        fetchProducts,show,setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,selectedVendor, setSelectedVendor,selectedTags, setSelectedTags,setinputProducttype,selectedProducttype,setProductType,allProductType,getproducttype,productinput
+        fetchProducts,show,setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,selectedVendor, setSelectedVendor,selectedTags, setSelectedTags,setinputProducttype,inputvalue,setInputvalue,selectedProducttype,setProductType,allProductType,getproducttype,productinput
       }}
     >
       {children}

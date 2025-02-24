@@ -24,13 +24,13 @@ const InventoryTable = ({
   Barcode,
   handleRemovedVariants,
   currentProduct,sku,stock 
+
 }) => {
   const [groupedOptions, setGroupedOptions] = useState({});
   const [variantData, setVariantData] = useState([]);
   const [removedVariants, setRemovedVariants] = useState([]);
   // ✅ Convert uploaded image to URL (For preview purposes)
-console.log(Barcode,sku,stock);
-
+  // ;
   // ✅ Group options dynamically when options change
   useEffect(() => {
     const grouped = options.reduce((acc, option) => {
@@ -106,7 +106,7 @@ const generateVariants = () => {
       image: "", // Will be updated when user uploads new image
       preview: existingVariant?.variant_image || "", // ✅ Show database image in preview
       price: existingVariant?.price || price || 0,
-      stock: existingVariant?.stock_quantity || 0,
+      stock: existingVariant?.stock_quantity || stock  || 0,
       sku: existingVariant?.sku || (index === 0 ? sku : `${sku}-${index}`) || " ",
     };
   });
@@ -176,7 +176,7 @@ const generateVariants = () => {
   }, [variantData]);
 
 
-console.log(variantData,'all')
+
   return (
     <Box sx={{ mt: 5 }}>
       <TableContainer component={Paper} sx={{ mt: 5 }}>

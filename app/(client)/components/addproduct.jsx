@@ -299,11 +299,17 @@ setinputProducttype (newValue);
     formDataToSend.append("Barcode",formData?.Barcode);
     formDataToSend.append("tax",isTaxed);
     formDataToSend.append("stocks",formData?.stocks);
-    formDataToSend.append("brand",selectedVendor?._id);
-    formDataToSend.append("product_type",selectedProducttype?._id);
-
+    if (selectedVendor?._id && selectedVendor._id.trim() !== "") {
+      formDataToSend.append("brand", selectedVendor._id);
+    }
+    
+    if (selectedProducttype?._id && selectedProducttype._id.trim() !== "") {
+      formDataToSend.append("product_type", selectedProducttype._id);
+    }
+    
+    if(selectedTags.length>0){
     formDataToSend.append("tags",selectedTags.map((tag)=>tag?._id));
-
+    }
     
 
     // Append images
@@ -343,6 +349,7 @@ setinputProducttype (newValue);
         setMessage(data?.message);
         setSelectedVendor('');
         setSelectedTags([]);
+        setProductType('');
         localStorage.setItem("activeTab", "product");
         setTimeout(()=>{
           router.push("/products");
