@@ -72,23 +72,6 @@ const getproducttype = async()=>{
   }
 }
 
-  const handleReset = () => {
-    setFormData({
-      title: "",
-      description: "",
-      price: "",
-      sku: generateRandomSKU(), // regenerates a new SKU
-      images: [],
-      status: "Draft",
-      slug: "",
-      cprice: "",
-      costprice: "",
-      Barcode: ""
-    });
-    setErrors({});
-    setOptions([]);
-    setvariants([]);
-  };
 
 
  

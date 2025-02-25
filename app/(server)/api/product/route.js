@@ -37,6 +37,13 @@ export const POST = async (req, res) => {
     const isTax = payload.get("tax");
     const totalstock = payload.get("stocks");
     const weight = payload.get("weight");
+
+    const publish_status = payload.get("publish");
+    let page_title= payload.get("page_title");
+   page_title= page_title || title;
+   let meta_description = payload.get("meta_description");
+   meta_description = meta_description || description;
+
     console.log(payload);
     // ✅ Process Images and Save Them Locally
     let featuredFilePaths = [];
@@ -60,7 +67,9 @@ export const POST = async (req, res) => {
       product_description: description,
       product_status: status,
       featured_image: featuredFilePaths,
-
+      publish_status: publish_status,
+      page_title: page_title ,
+      meta_description: meta_description,
       // Only save `tag_id` if it has valid tags
       tag_id: alltags && alltags.length > 0 ? alltags : [],
 
@@ -297,7 +306,7 @@ export const PATCH = async (req, res) => {
     let stockId;
     // Parse the incoming FormData
     const data = await req.formData();
-    console.log(data);
+  
 
     // Extract product fields from FormData
     const id = data.get("productId");
@@ -313,6 +322,16 @@ export const PATCH = async (req, res) => {
     const barcode = data.get("barcode");
     const brandid = data.get("brand");
     const product_type = data.get("product_type");
+
+    const publish_status =data.get("publish");
+    let page_title= data.get("page_title");
+   page_title= page_title || title;
+   let meta_description = data.get("meta_description");
+   meta_description = meta_description || description;
+  
+
+
+
 
     const atags = new Set(data.get("tags")?.split(",") || []);
     const rtags = new Set(data.get("removetag")?.split(",") || []);
@@ -346,6 +365,9 @@ export const PATCH = async (req, res) => {
       brand_id: brandid ? brandid : null,
       producttype_id: product_type ? product_type : null,
       tag_id: updatedTags,
+      publish_status: publish_status || product.publish_status,
+      page_title: page_title || product.page_title,
+      meta_description: meta_description || product.meta_description,
     };
 
     // Process new images
@@ -498,9 +520,13 @@ export const PATCH = async (req, res) => {
         }
       }
     }
+let findid = await Location.findOne({isdefault:true});
 
+let lid = findid?._id;
     let locationid = data.get(`variantdata[0][locationid]`);
-
+    if(locationid==='null'){
+       locationid=lid;
+    }
     let variantIndex = 0;
     while (data.has(`variantdata[${variantIndex}][price]`)) {
       const variantId = data.get(`variantdata[${variantIndex}][id]`);
@@ -556,6 +582,7 @@ export const PATCH = async (req, res) => {
         });
 
         await newStock.save();
+        console.log(newStock);
         stockId = newStock._id; // Assign newly created stockId
       } else {
         const updateStock = await Stock.findOneAndUpdate(

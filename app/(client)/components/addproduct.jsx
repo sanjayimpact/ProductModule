@@ -19,7 +19,9 @@ import {
   InputAdornment,
   FormControlLabel,
   Checkbox,
-  Autocomplete,// <-- Added InputAdornment here
+  Autocomplete,
+  FormLabel,
+  FormGroup,// <-- Added InputAdornment here
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
@@ -74,8 +76,14 @@ const{setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,sel
     costprice:"",
     Barcode:"",
     stocks:"",
-    tags:""
+    tags:"",
+    publish:"Online Store",
+    page_title:"",
+    meta_description:""
   });
+  const [page_title,setPagetitle] = useState("");
+ 
+  const[metadescription,setMetadescription]=useState(formData?.description);
   const [weight, setWeight] = useState(0);
   const [unit, setUnit] = useState("kg");
   const totalWeight = `${weight} ${unit}`;
@@ -216,6 +224,20 @@ const{setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,sel
 
   const handleChange = (field) => (event) => {
     const value = event.target.value;
+
+   if(field==="description" && value.length > 160){
+    return;
+   }
+
+    if(field==="title"){
+      setPagetitle(value);
+    }
+    if(field==="description"){
+      
+
+      setMetadescription(value);
+    }
+
     setFormData((prev) => ({ ...prev, [field]: value }));
     validate(field, value);
   };
@@ -304,6 +326,10 @@ setinputProducttype (values);
     formDataToSend.append("tax",isTaxed);
     formDataToSend.append("stocks",formData?.stocks);
     formDataToSend.append("weight",totalWeight);
+    formDataToSend.append("publish",formData.publish);
+    formDataToSend.append("page_title",page_title);
+
+    formDataToSend.append("meta_description",metadescription);
     if (selectedVendor?._id && selectedVendor._id.trim() !== "") {
       formDataToSend.append("brand", selectedVendor._id);
     }
@@ -416,7 +442,7 @@ getTags();
 const Addnewvendor = async()=>{
   try{
     let addbrand= await axios.post("/api/brand",{brand_name:vendorinput});
-    console.log(addbrand);
+
     getBrands();
   }catch(err){
  
@@ -437,15 +463,33 @@ const Addnewpt =async()=>{
     <>
 
       {/* Product Form Section */}
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+  <Box display="flex" alignItems="center">
+    <IconButton onClick={goback}><ArrowBackIcon /></IconButton>
+    <Typography variant="p" fontWeight="bold">Add Product</Typography>
+  </Box>
+  <Button variant="contained" color="success" sx={{
+    borderRadius: 2,         // Adjust for the desired rounding
+    px: 2,
+    py: 0.5,
+    fontSize:'12px',
+    fontWeight: "bold",
+    textTransform: "none",
+    backgroundColor: "#333",  // Dark gray/black background
+    color: "#fff",            // White text
+    border: "1px solid #000", // Subtle border
+    "&:hover": {
+      backgroundColor: "#444", // Slightly lighter on hover
+    },
+  }} onClick={handleSubmit}>Save</Button>
+</Box>
+
      <Grid container spacing={2}  >
+      
    
       <Grid item xs={9} >
-      <IconButton onClick={goback}>
-    <ArrowBackIcon />
-  </IconButton>
-  <Typography variant="p" fontWeight="bold" >
-    Add Product
-  </Typography>
+     
+
       <Paper
         elevation={3}
         sx={{
@@ -486,6 +530,9 @@ const Addnewpt =async()=>{
               value={formData.description}
               onChange={handleChange("description")}
             />
+            <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: formData.description.length >= 160 ? "red" : "gray" }}>
+    {formData.description.length}/160
+  </Typography>
           </Grid>
           <Grid item xs={6}>
             <Box
@@ -729,7 +776,12 @@ const Addnewpt =async()=>{
         size="small"
         variant="outlined"
         value={weight}
-        onChange={(e)=>setWeight(e.target.value)}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (/^\d*\.?\d{0,2}$/.test(value)) {
+            setWeight(value);
+          }
+        }}
         InputProps={{
           endAdornment: (
             <InputAdornment position="end">
@@ -789,8 +841,9 @@ const Addnewpt =async()=>{
           <>
       
           <Grid item xs={6}>
+            
             <TextField
-              label="Product Slug"
+              label="URL handle"
               size="small"
               fullWidth
               variant="outlined"
@@ -807,12 +860,50 @@ const Addnewpt =async()=>{
               }
             />
           </Grid>
+          <Grid item xs={6}>
+  <TextField
+    label="Page title"
+    size="small"
+    fullWidth
+    variant="outlined"
+    value={page_title} 
+    onChange={(e) => {
+      if (e.target.value.length <= 70) {
+        setPagetitle(e.target.value);
+      }
+    }}
+  />
+   <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: page_title.length >= 70 ? "red" : "gray" }}>
+    {page_title.length}/70
+  </Typography>
+</Grid>
+
+<Grid item xs={12}>
+  <TextField
+    label="Meta description"
+    size="small"
+    fullWidth
+    variant="outlined"
+    rows={4}
+    multiline
+    value={metadescription} 
+    onChange={(e) => {
+      if (e.target.value.length <= 160) {
+        setMetadescription(e.target.value);
+      }
+    }}
+  />
+   <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: metadescription.length >= 160 ? "red" : "gray" }}>
+    {metadescription.length}/160
+  </Typography>
+</Grid>
+
           </>
     </Grid>
  
     </Paper>
       </Grid>
-      <Grid item xs={3} mt={7}>
+      <Grid item xs={3} mt={2}>
         
       <Paper
         elevation={3}
@@ -838,6 +929,50 @@ Status
                 <MenuItem value="Draft">Draft</MenuItem>
               </Select>
             </FormControl>
+          </Grid>
+        </Paper>
+      <Paper
+        elevation={3}
+        sx={{
+          p: 2,
+          mt:4,
+          backgroundColor: "#ffffff",
+          borderRadius: 2,
+        }}
+      >     <Typography variant="p" sx={{ fontWeight: "bold" }}>
+Publishing
+     </Typography>
+     
+      <Grid item xs={12} mt={1}>
+        
+      <FormControl component="fieldset">
+  <FormLabel component="legend"  sx={{fontWeight:600, fontSize:'14px',color:'black'}}>Sales channels</FormLabel>
+  <FormGroup>
+    <FormControlLabel  className="custom_checkbox"
+      control={
+        <Checkbox 
+        size="small"
+          checked={formData.publish.includes("Online Store")}
+          onChange={handleChange("publish")}
+          value="Online Store"
+        />
+      }
+      label="Online Store"
+    />
+    <FormControlLabel className="custom_checkbox"
+      control={
+        <Checkbox  sx={{fontSize:'12px'}}
+         size="small"
+          checked={formData.publish.includes("Other")}
+          onChange={handleChange("publish")}
+          value="Other"
+        />
+      }
+      label="Other"
+    />
+  </FormGroup>
+</FormControl>
+
           </Grid>
         </Paper>
       <Paper
@@ -978,16 +1113,7 @@ Product organization
       {/* Variants Section */}
       
 
-      <Grid item xs={12} textAlign="end" marginTop={2}>
-        <Button
-          variant="contained"
-          color="success"
-          sx={{ p: 1, borderRadius: 1.5 }}
-          onClick={handleSubmit}
-        >
-          Save
-        </Button>
-      </Grid>
+   
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}

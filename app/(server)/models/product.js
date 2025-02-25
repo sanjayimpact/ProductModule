@@ -11,6 +11,23 @@ const productSchema = new mongoose.Schema({
         trim:true,
      
     },
+    publish_status:{
+  type:String,
+trim:true,
+enum:['Online Store','Other'],
+
+    },
+    page_title:
+    {
+        type:String,
+        trim:true,
+    },
+    meta_description:{
+        type:String,
+    },
+
+
+
     product_description:{
         type:String,
         trim:true

@@ -20,6 +20,8 @@ import {
   Checkbox,
   Autocomplete,
   InputAdornment,
+  FormLabel,
+  FormGroup,
 
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -66,12 +68,15 @@ const[checkedtag,setchecked] = useState()
     sku: currentProduct?.variants?.[0]?.sku || "",
     images: currentProduct?.featured_image ? [...currentProduct.featured_image] : [],
     status: currentProduct?.product_status || "",
+    publish:currentProduct?.publish_status || "",
     slug: currentProduct?.product_slug || "",
     costprice: currentProduct?.variants?.[0]?.costprice || "",
     cprice: currentProduct?.variants?.[0]?.compareprice || "",
     Barcode: currentProduct?.variants?.[0]?.barcode,
     stocks: currentProduct?.variants?.[0]?.stock_Id?.stocks || 0,
-    brandName: currentProduct?.brand_id?.brand_name
+    brandName: currentProduct?.brand_id?.brand_name,
+    page_title:currentProduct?.page_title || "",
+    meta_description:currentProduct?.meta_description || "",
 
 
   });
@@ -267,7 +272,17 @@ const[checkedtag,setchecked] = useState()
   const handleChange = (field) => (event) => {
     const { value } = event.target;
     let updatedValue = value;
+    if(field==="page_title"  && value.length>70){
+      return
+    }
+    if(field==="meta_description"  && value.length>160){
+      return;
+    }
+    if(field==="description" && value.length>160){
+      return;
+    }
 
+    
     if (field === "slug") {
       updatedValue = value
         .toLowerCase()
@@ -369,6 +384,9 @@ const[checkedtag,setchecked] = useState()
     formDataToSend.append("barcode", formData.Barcode);
     formDataToSend.append("istax", isTaxed);
     formDataToSend.append("weight", totalWeight);
+    formDataToSend.append("publish", formData.publish);
+    formDataToSend.append("page_title",formData.page_title);
+    formDataToSend.append("meta_description",formData.meta_description);
 
     if (selectedVendor?._id && selectedVendor._id.trim() !== "") {
       formDataToSend.append("brand", selectedVendor._id);
@@ -640,13 +658,33 @@ useEffect(()=>{
 
   return (
     <>
+
+<Box display="flex" alignItems="center" justifyContent="space-between">
+  <Box display="flex" alignItems="center">
+    <IconButton onClick={goback}><ArrowBackIcon /></IconButton>
+    <Typography variant="p" fontWeight="bold">update product</Typography>
+  </Box>
+  <Button variant="contained" color="success" sx={{
+    borderRadius: 2,         // Adjust for the desired rounding
+    px: 2,
+    py: 0.5,
+    fontSize:'12px',
+    fontWeight: "bold",
+    textTransform: "none",
+    backgroundColor: "#333",  // Dark gray/black background
+    color: "#fff",            // White text
+    border: "1px solid #000", // Subtle border
+    "&:hover": {
+      backgroundColor: "#444", // Slightly lighter on hover
+    },
+  }} onClick={handleSubmit}>update</Button>
+</Box>
       <Grid container spacing={2}>
+
         <Grid item xs={9}>
-          <IconButton onClick={goback}>
-            <ArrowBackIcon />
-          </IconButton>
+        
           <Typography variant="p" fontWeight="bold" >
-            Edit  Product
+           
           </Typography>
           <Paper
             elevation={3}
@@ -689,6 +727,9 @@ useEffect(()=>{
                   error={!!errors.description}
                   helperText={errors.description}
                 />
+                 <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: formData.description.length >= 160 ? "red" : "gray" }}>
+                    {formData.description.length}/160
+                  </Typography>
               </Grid>
               <Grid item xs={6}>
                 <Box
@@ -1002,6 +1043,39 @@ useEffect(()=>{
                     }
                   />
                 </Grid>
+
+          <Grid item xs={6}>
+  <TextField
+    label="Page title"
+    size="small"
+    fullWidth
+    variant="outlined"
+    value={formData?.page_title} 
+    onChange={handleChange("page_title")}
+  />
+      <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: formData?.page_title.length >= 200 ? "red" : "gray" }}>
+      {formData?.page_title.length}/70
+    </Typography>
+</Grid>
+
+<Grid item xs={12}>
+  <TextField
+    label="Meta description"
+    size="small"
+    fullWidth
+    variant="outlined"
+    rows={4}
+    multiline
+    value={formData?.meta_description} 
+    onChange={handleChange("meta_description")}
+  />
+    <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: formData.meta_description.length >= 160 ? "red" : "gray" }}>
+      {formData.meta_description.length}/160
+    </Typography>
+</Grid>
+
+
+
               </>
             </Grid>
 
@@ -1011,7 +1085,7 @@ useEffect(()=>{
 
 
         </Grid>
-        <Grid item xs={3} mt={7}>
+        <Grid item xs={3} mt={2}>
           <Paper
             elevation={3}
             sx={{
@@ -1037,6 +1111,50 @@ useEffect(()=>{
 
 
           </Paper>
+          <Paper
+        elevation={3}
+        sx={{
+          p: 2,
+          mt:4,
+          backgroundColor: "#ffffff",
+          borderRadius: 2,
+        }}
+      >     <Typography variant="p" sx={{ fontWeight: "bold" }}>
+Publishing
+     </Typography>
+     
+      <Grid item xs={12} mt={1}>
+        
+      <FormControl component="fieldset">
+  <FormLabel component="legend"  sx={{fontWeight:600, fontSize:'14px',color:'black'}}>Sales channels</FormLabel>
+  <FormGroup>
+    <FormControlLabel  className="custom_checkbox"
+      control={
+        <Checkbox 
+        size="small"
+          checked={formData.publish.includes("Online Store")}
+          onChange={handleChange("publish")}
+          value="Online Store"
+        />
+      }
+      label="Online Store"
+    />
+    <FormControlLabel className="custom_checkbox"
+      control={
+        <Checkbox  sx={{fontSize:'12px'}}
+         size="small"
+          checked={formData.publish.includes("Other")}
+          onChange={handleChange("publish")}
+          value="Other"
+        />
+      }
+      label="Other"
+    />
+  </FormGroup>
+</FormControl>
+
+          </Grid>
+        </Paper>
           <Paper
             elevation={3}
             sx={{
@@ -1152,22 +1270,7 @@ useEffect(()=>{
       </Grid>
 
 
-      {/* Variants Section */}
-
-
-      {/* You can add your SAVE button here if desired */}
-
-      <Grid item xs={12} textAlign="end" marginTop={2}>
-        <Button
-          variant="contained"
-          color="success"
-          sx={{ p: 1, borderRadius: 1.5 }}
-          onClick={handleSubmit}
-        >
-          Save
-        </Button>
-      </Grid>
-
+  
 
       <Snackbar
         open={snackbarOpen}

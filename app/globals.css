@@ -40,3 +40,6 @@ a {
     color-scheme: dark;
   }
 }
+.custom_checkbox span{
+  font-size: 12px !important;
+}

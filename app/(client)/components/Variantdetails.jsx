@@ -204,13 +204,20 @@ const generateVariants = () => {
       checkSkuAvailability(value, index); // Check SKU when changed
     }
   
-    
+    if (field === "price") {
+      const regex = /^(?!.*[ _])\d*\.?\d{0,2}$/;
+      if (!regex.test(value)) {
+        return; // Exit if input is invalid
+      }
+    }
+  
     setVariantData((prevData) =>
       prevData.map((item, i) =>
         i === index ? { ...item, [field]: value } : item
       )
     );
   };
+  
 
   // ✅ Send updated variant data to parent component
 
