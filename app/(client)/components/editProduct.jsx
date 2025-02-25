@@ -105,17 +105,20 @@ const[checkedtag,setchecked] = useState()
   // const debouncedSku = useDebounce(computeSku, 500);
 
   const handlevendor = (e) => {
-    const newValue = e?.target?.value;
-    console.log(newValue);
+    const newValue = e?.target?.value || '';
+    const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
 
-    setvendorinput(newValue)
+
+
+    setvendorinput(values)
   }
   const handleproductype = (e) => {
-    const newValue = e?.target?.value;
-    console.log(newValue);
+    const newValue = e?.target?.value || '';
+    const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
 
 
-    setinputProducttype(newValue);
+
+    setinputProducttype(values);
   }
   const handleinput = (e) => {
 
@@ -988,6 +991,7 @@ const[checkedtag,setchecked] = useState()
                     size="small"
                     options={allbrands}
                     value={selectedVendor}
+                    isOptionEqualToValue={(option, value) => option.brand_name === value.brand_name}
                     getOptionLabel={(option) => option.brand_name || ""}
                     onInputChange={handlevendor}
                     onChange={(_, newValue) => setSelectedVendor(newValue)}
