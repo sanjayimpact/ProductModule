@@ -5,6 +5,7 @@ import { Variantdetail } from "../../models/variantdetail";
 import connectDB from "../../lib/db";
 import path from "path";
 import fs from "fs";
+import { Location } from "../../models/location";
 
 
 
@@ -21,6 +22,7 @@ export const POST = async (req, res) => {
     await connectDB();
     let isVariandetails;
     // ✅ Get FormData
+    
 
     let payload = await req.formData();
  
@@ -96,6 +98,20 @@ export const POST = async (req, res) => {
       optIndex++;
       isVariandetails = 1;
     }
+// if(stocks){
+//   //create a default location
+//   let defaultlocation = new Location({
+//     name:'default',
+//     address:'default address',
+//     isdefault:true
+//   })
+//   await defaultlocation.save();
+
+
+//   //create a stock for it
+   
+// }
+
 
     // ✅ Process Variant Data from the Payload
     const savedVariants = [];

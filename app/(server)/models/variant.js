@@ -26,7 +26,7 @@ const varianSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref: 'Product',
     },
-    stock_quantity:{
+    stock_Id:{
         type:Number,
         default:0
     },
