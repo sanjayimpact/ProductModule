@@ -27,8 +27,8 @@ const varianSchema = new mongoose.Schema({
         ref: 'Product',
     },
     stock_Id:{
-        type:Number,
-        default:0
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'Stock',
     },
     variant_image:{
         type:String,

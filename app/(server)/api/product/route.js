@@ -6,15 +6,7 @@ import connectDB from "../../lib/db";
 import path from "path";
 import fs from "fs";
 import { Location } from "../../models/location";
-
-
-
-
-
-
-
-
-
+import { Stock } from "../../models/stock";
 
 //add products
 export const POST = async (req, res) => {
@@ -22,16 +14,16 @@ export const POST = async (req, res) => {
     await connectDB();
     let isVariandetails;
     // ✅ Get FormData
-    
+    let stockid;
 
     let payload = await req.formData();
- 
+
     let tags = payload.get("tags");
-   
-    let productType = payload.get("product_type") ||' ';
+
+    let productType = payload.get("product_type") || " ";
     let alltags = tags?.split(",");
-    const  brand = payload.get("brand") || ' ';
- 
+    const brand = payload.get("brand") || " ";
+
     // ✅ Extract Product Data
     const title = payload.get("title");
     const description = payload.get("description");
@@ -39,11 +31,11 @@ export const POST = async (req, res) => {
     const sku = payload.get("sku") || ""; // Default SKU
     const status = payload.get("status") || "Draft"; // Default status
     const slug = payload.get("slug");
-    const compareprice = payload.get('cprice') ||"0";
+    const compareprice = payload.get("cprice") || "0";
     const costprice = payload.get("costprice") || "0";
     const Barcode = payload.get("Barcode") || " ";
     const isTax = payload.get("tax");
-    const stocks = payload.get("stocks");
+    const totalstock = payload.get("stocks");
     const weight = payload.get("weight");
     console.log(payload);
     // ✅ Process Images and Save Them Locally
@@ -60,7 +52,7 @@ export const POST = async (req, res) => {
         featuredFilePaths.push(`/uploads/${filename}`);
       }
     }
-    
+
     // ✅ Save Product
     const product = new Product({
       product_name: title,
@@ -68,15 +60,16 @@ export const POST = async (req, res) => {
       product_description: description,
       product_status: status,
       featured_image: featuredFilePaths,
-    
+
       // Only save `tag_id` if it has valid tags
       tag_id: alltags && alltags.length > 0 ? alltags : [],
-    
+
       // Only save `brand_id` and `producttype_id` if valid, otherwise set to null
       brand_id: brand && brand.trim() !== "" ? brand : null,
-      producttype_id: productType && productType.trim() !== "" ? productType : null,
+      producttype_id:
+        productType && productType.trim() !== "" ? productType : null,
     });
-    
+
     await product.save();
 
     // ✅ Extract Options Dynamically
@@ -98,20 +91,25 @@ export const POST = async (req, res) => {
       optIndex++;
       isVariandetails = 1;
     }
-// if(stocks){
-//   //create a default location
-//   let defaultlocation = new Location({
-//     name:'default',
-//     address:'default address',
-//     isdefault:true
-//   })
-//   await defaultlocation.save();
+    if (totalstock) {
+      //create a default location
+      let defaultlocation = new Location({
+        name: "default",
+        address: "default address",
+        isdefault: true,
+      });
+      let location = await defaultlocation.save();
 
+      //create a stock for it
+      let stock = new Stock({
+        location_id: location?._id,
+        stocks: totalstock,
+        isdefault: true,
+      });
+      let stocks = await stock.save();
 
-//   //create a stock for it
-   
-// }
-
+      stockid = stocks?._id;
+    }
 
     // ✅ Process Variant Data from the Payload
     const savedVariants = [];
@@ -119,24 +117,24 @@ export const POST = async (req, res) => {
     if (!payload.has("variantdata[0][price]")) {
       // No variant data provided – create a default empty variant.
       const variantPrice = price;
-      const variantStock = stocks;
+      const variantStock = stockid;
       const variantImage = "";
-     
+
       const attributes = {}; // no attributes
-      
+
       const newVariant = new Variant({
         product_id: product._id,
         sku: sku, // SKU same as product
         price: variantPrice,
-        compareprice:compareprice,
-        barcode:Barcode,
-        stock_quantity: variantStock,
-        costprice:costprice,
+        compareprice: compareprice,
+        barcode: Barcode,
+        stock_Id: variantStock,
+        costprice: costprice,
         variant_image: variantImage,
         isVariandetails: 0,
-        istax:isTax,
-        weight:weight,
-        isdefault:true
+        istax: isTax,
+        weight: weight,
+        isdefault: true,
       });
       await newVariant.save();
 
@@ -144,8 +142,7 @@ export const POST = async (req, res) => {
         variant_id: newVariant._id,
         Options: [], // no options
         option_values: {},
-        isdefault:true
-
+        isdefault: true,
       });
       await variantDetail.save();
 
@@ -157,8 +154,8 @@ export const POST = async (req, res) => {
         // Extract basic variant details
         const variantPrice =
           payload.get(`variantdata[${variantIndex}][price]`) || price;
-        const variantStock =
-          payload.get(`variantdata[${variantIndex}][stock]`) || "0";
+        const variantStock = stockid;
+        // payload.get(`variantdata[${variantIndex}][stock]`) || "0";
         const variantSku =
           payload.get(`variantdata[${variantIndex}][sku]`) ||
           (variantIndex === 0 ? sku : `${sku}-${variantIndex}`);
@@ -178,7 +175,9 @@ export const POST = async (req, res) => {
         // Extract variant attributes
         let attributes = {};
         for (let [key, value] of payload.entries()) {
-          const regex = new RegExp(`^variantdata\\[${variantIndex}\\]\\[attributes\\]\\[(.+)\\]$`);
+          const regex = new RegExp(
+            `^variantdata\\[${variantIndex}\\]\\[attributes\\]\\[(.+)\\]$`
+          );
           const match = key.match(regex);
           if (match) {
             const attrName = match[1];
@@ -191,15 +190,15 @@ export const POST = async (req, res) => {
           product_id: product._id,
           sku: variantIndex === 0 ? sku : `${sku}-${variantIndex}`,
           price: variantPrice,
-          costprice:costprice,
-          barcode:Barcode,
-          compareprice:compareprice,
-          stock_quantity: variantStock,
+          costprice: costprice,
+          barcode: Barcode,
+          compareprice: compareprice,
+          stock_Id: variantStock,
           variant_image: variantImage,
           isVariandetails: isVariandetails,
-          istax:isTax,
-          weight:weight,
-          isdefault:variantIndex===0?true:false 
+          istax: isTax,
+          weight: weight,
+          isdefault: variantIndex === 0 ? true : false,
         });
         await newVariant.save();
 
@@ -209,7 +208,7 @@ export const POST = async (req, res) => {
           variant_id: newVariant._id,
           Options: Object.keys(attributes), // e.g., ["color", "size"]
           option_values: attributes, // e.g., { color: "red", size: "l" }
-          isdefault:variantIndex===0?true:false 
+          isdefault: variantIndex === 0 ? true : false,
         });
         await variantDetail.save();
 
@@ -238,23 +237,33 @@ export const POST = async (req, res) => {
   }
 };
 
-
 // get the product
 export const GET = async () => {
   try {
-  
-
     // ✅ Fetch all products
     let products = await Product.find({});
 
     // ✅ Fetch variants and variant details for each product
     let responseData = await Promise.all(
       products.map(async (product) => {
-        let variants = await Variant.find({ product_id: product._id ,isVariandetails:1});
+        let variants = await Variant.find({
+          product_id: product._id,
+          isVariandetails: 1,
+        }).populate({ path: "stock_Id" });
+        let stock = await Variant.find({
+          product_id: product._id,
+          isdefault: true,
+        }).populate({ path: "stock_Id", select: "stocks" });
+        let stocks = stock
+          .map((variant) => variant.stock_Id)
+          .filter((stock) => stock); // Removes null values
 
+        let defaultstock = stocks[0]?.stocks || 0;
         let variantData = await Promise.all(
           variants.map(async (variant) => {
-            let variantDetails = await Variantdetail.find({ variant_id: variant._id });
+            let variantDetails = await Variantdetail.find({
+              variant_id: variant._id,
+            });
 
             return {
               ...variant._doc, // Spread variant data
@@ -264,6 +273,7 @@ export const GET = async () => {
         );
 
         return {
+          defaultstock,
           ...product._doc, // Spread product data
           variants: variantData, // Attach variants with details
         };
@@ -280,17 +290,14 @@ export const GET = async () => {
   }
 };
 
-
-
 export const PATCH = async (req, res) => {
-
   try {
     // Connect to the database
     await connectDB();
-
+    let stockId;
     // Parse the incoming FormData
     const data = await req.formData();
-
+    console.log(data);
 
     // Extract product fields from FormData
     const id = data.get("productId");
@@ -306,43 +313,40 @@ export const PATCH = async (req, res) => {
     const barcode = data.get("barcode");
     const brandid = data.get("brand");
     const product_type = data.get("product_type");
- 
+
     const atags = new Set(data.get("tags")?.split(",") || []);
     const rtags = new Set(data.get("removetag")?.split(",") || []);
 
+    // Check if the product exists
+    const product = await Product.findById(id);
+    if (!product) {
+      return res
+        .status(400)
+        .json({ message: "Product not found", isSuccess: false });
+    }
+    const existingTags = new Set(
+      (product.tag_id || []).map((id) => id.toString())
+    );
 
- // Check if the product exists
- const product = await Product.findById(id);
- if (!product) {
-   return res.status(400).json({ message: "Product not found", isSuccess: false });
-  }
-  const existingTags = new Set((product.tag_id || []).map(id => id.toString()));
+    // Remove tags that are in rtags
+    rtags.forEach((tag) => existingTags.delete(tag.toString())); // Ensure consistency in string format
 
-  // Remove tags that are in rtags
-  rtags.forEach(tag => existingTags.delete(tag.toString())); // Ensure consistency in string format
-  
-  // Add only new unique tags
-  atags.forEach(tag => existingTags.add(tag.toString())); // Convert added tags to strings
-  
-  // Convert back to an array (if needed for MongoDB update)
-  const updatedTags = Array.from(existingTags)
+    // Add only new unique tags
+    atags.forEach((tag) => existingTags.add(tag.toString())); // Convert added tags to strings
 
+    // Convert back to an array (if needed for MongoDB update)
+    const updatedTags = Array.from(existingTags);
 
-
-
-
-    
     // Update product details
     const updatedProduct = {
       product_name: title || product.product_name,
       product_description: description || product.product_description,
       product_slug: slug || product.product_slug,
       product_status: status || product.product_status,
-      brand_id:brandid?brandid:null,
-      producttype_id: product_type?product_type :null,
-      tag_id:updatedTags
+      brand_id: brandid ? brandid : null,
+      producttype_id: product_type ? product_type : null,
+      tag_id: updatedTags,
     };
-
 
     // Process new images
     const featuredFilePaths = [];
@@ -359,7 +363,10 @@ export const PATCH = async (req, res) => {
 
     // Add new images to the product
     if (featuredFilePaths.length > 0) {
-      updatedProduct.featured_image = [...product.featured_image, ...featuredFilePaths];
+      updatedProduct.featured_image = [
+        ...product.featured_image,
+        ...featuredFilePaths,
+      ];
     }
 
     // Process removed images in product one
@@ -388,52 +395,58 @@ export const PATCH = async (req, res) => {
         const lastVariantId = removeVariations.pop();
         await Variant.findByIdAndUpdate(lastVariantId, {
           price: price || existingVariants[0].price,
-          stock_quantity: "0",
+          stock_Id: existingVariants[0].stock_Id,
           variant_image: "",
           sku: sku || existingVariants[0].sku,
           isVariandetails: 0,
-          isdefault:true,
-          costprice:costprice,
-          compareprice:cprice,
-          barcode:barcode,
-          
-istax:tax
+          isdefault: true,
+          costprice: costprice,
+          compareprice: cprice,
+          barcode: barcode,
+
+          istax: tax,
         });
         await Variantdetail.findOneAndUpdate(
           { variant_id: lastVariantId },
           {
             Options: [],
             option_values: {},
-            isdefault:true
+            isdefault: true,
           }
         );
       }
-    
-      await Variantdetail.deleteMany({ variant_id: { $in: removeVariations } ,isdefault: false });
-      await Variant.deleteMany({ _id: { $in: removeVariations },isdefault: false  });
+
+      await Variantdetail.deleteMany({
+        variant_id: { $in: removeVariations },
+        isdefault: false,
+      });
+      await Variant.deleteMany({
+        _id: { $in: removeVariations },
+        isdefault: false,
+      });
     }
-
-
 
     //delete multuple options
 
     const removeOptions = {};
     let removeIndex = 0;
-    
+
     while (data.has(`removeoptions[${removeIndex}][name]`)) {
       const optionName = data.get(`removeoptions[${removeIndex}][name]`);
       let removedValues = [];
-    
+
       let valueIndex = 0;
       while (data.has(`removeoptions[${removeIndex}][values][${valueIndex}]`)) {
-        removedValues.push(data.get(`removeoptions[${removeIndex}][values][${valueIndex}]`));
+        removedValues.push(
+          data.get(`removeoptions[${removeIndex}][values][${valueIndex}]`)
+        );
         valueIndex++;
       }
-    // making a object of the values with the option name
+      // making a object of the values with the option name
       removeOptions[optionName] = removedValues;
       removeIndex++;
     }
- 
+
     // ✅ Delete Variants that Match Removed Options
     if (Object.keys(removeOptions).length > 0) {
       for (const [optionName, removedValues] of Object.entries(removeOptions)) {
@@ -444,54 +457,64 @@ istax:tax
 
         if (variantsToDelete.length > 0) {
           // Extract variant IDs to delete
-          const variantIdsToDelete = variantsToDelete.map((v) => v.variant_id.toString());
+          const variantIdsToDelete = variantsToDelete.map((v) =>
+            v.variant_id.toString()
+          );
           removevariantIdsToDelete.push(...variantIdsToDelete);
           if (variantIdsToDelete.length > 0) {
-         
-            const get = await Variant.deleteMany({ _id: { $in: variantIdsToDelete },isdefault:false });
-            
-        
-           const details =  await Variantdetail.deleteMany({ variant_id: { $in: variantIdsToDelete },isdefault:false }); // Deletes Variant details
-           const updateVariant  = await Variant.findOne({_id:{$in:variantIdsToDelete},isdefault:true})
-        
-            const updateDetails  = await Variantdetail.findOne({variant_id:{$in:variantIdsToDelete},isdefault:true})
-         
-           if(updateVariant){
-                updateVariant.isVariandetails=0;
-                updateVariant.costprice=costprice;
-                updateVariant.compareprice=cprice;
-                updateVariant.barcode =barcode;
-                updateVariant.istax=tax;
-                await updateVariant.save();
-  
-           }
-           if(updateDetails){
-            
-              updateDetails.Options=[],
-              updateDetails.option_values={}
+            const get = await Variant.deleteMany({
+              _id: { $in: variantIdsToDelete },
+              isdefault: false,
+            });
+
+            const details = await Variantdetail.deleteMany({
+              variant_id: { $in: variantIdsToDelete },
+              isdefault: false,
+            }); // Deletes Variant details
+            const updateVariant = await Variant.findOne({
+              _id: { $in: variantIdsToDelete },
+              isdefault: true,
+            });
+
+            const updateDetails = await Variantdetail.findOne({
+              variant_id: { $in: variantIdsToDelete },
+              isdefault: true,
+            });
+
+            if (updateVariant) {
+              updateVariant.isVariandetails = 0;
+              updateVariant.costprice = costprice;
+              updateVariant.compareprice = cprice;
+              updateVariant.barcode = barcode;
+              updateVariant.istax = tax;
+
+              await updateVariant.save();
+            }
+            if (updateDetails) {
+              (updateDetails.Options = []), (updateDetails.option_values = {});
               await updateDetails.save();
-         
-          
-           }
-          
-       
-          
+            }
           }
         }
       }
-   
     }
 
+    let locationid = data.get(`variantdata[0][locationid]`);
 
-
-// update the variant data
     let variantIndex = 0;
     while (data.has(`variantdata[${variantIndex}][price]`)) {
       const variantId = data.get(`variantdata[${variantIndex}][id]`);
-      const variantPrice = data.get(`variantdata[${variantIndex}][price]`) || price;
-      const variantStock = data.get(`variantdata[${variantIndex}][stock]`) || "0";
+      let stockId = data.get(`variantdata[${variantIndex}][stockid]`); // Get stockId
+
+      const variantPrice =
+        data.get(`variantdata[${variantIndex}][price]`) || price;
+      const variantStock =
+        data.get(`variantdata[${variantIndex}][stock]`) || "0";
+      const variantbarcode =
+        data.get(`variantdata[${variantIndex}][barcode]`) || " ";
       const variantsSku =
-        data.get(`variantdata[${variantIndex}][sku]`) || `${sku}-${variantIndex}`;
+        data.get(`variantdata[${variantIndex}][sku]`) ||
+        `${sku}-${variantIndex}`;
 
       let variantImage = "";
 
@@ -517,69 +540,90 @@ istax:tax
       // Extract variant attributes
       const attributes = {};
       for (const [key, value] of data.entries()) {
-        const regex = new RegExp(`^variantdata\\[${variantIndex}\\]\\[attributes\\]\\[(.+)\\]$`);
+        const regex = new RegExp(
+          `^variantdata\\[${variantIndex}\\]\\[attributes\\]\\[(.+)\\]$`
+        );
         const match = key.match(regex);
         if (match) {
           attributes[match[1]] = value;
         }
       }
 
-      // If variantId is "null" or not provided, create a new variant & variantdetail
-      if ((!variantId || variantId === "null") && !removevariantIdsToDelete.includes(variantId)) {
+      if (!stockId || stockId === "null") {
+        const newStock = new Stock({
+          location_id: locationid,
+          stocks: variantStock,
+        });
 
+        await newStock.save();
+        stockId = newStock._id; // Assign newly created stockId
+      } else {
+        const updateStock = await Stock.findOneAndUpdate(
+          { _id: stockId },
+          { stocks: variantStock },
+          { new: true }
+        );
+        console.log(updateStock);
+      }
+
+      // If variantId is "null" or not provided, create a new variant & variantdetail
+      if (
+        (!variantId || variantId === "null") &&
+        !removevariantIdsToDelete.includes(variantId)
+      ) {
         const newVariant = await Variant.create({
           product_id: id,
           price: variantPrice,
-          stock_quantity: variantStock,
+          stock_Id: stockId,
           variant_image: variantImage,
           sku: variantsSku,
-          isVariandetails: 1,     
-          costprice:costprice,
-          compareprice:cprice,
-          barcode:barcode,
-          
-istax:tax
+          isVariandetails: 1,
+          costprice: costprice,
+          compareprice: cprice,
+          barcode: variantbarcode,
+
+          istax: tax,
         });
         await Variantdetail.create({
           variant_id: newVariant._id,
           Options: Object.keys(attributes),
           option_values: attributes,
         });
-      } else if(!removevariantIdsToDelete.includes(variantId)){
-      
-           const updatedVariant = await Variant.findOneAndUpdate(
+      } else if (!removevariantIdsToDelete.includes(variantId)) {
+        const updatedVariant = await Variant.findOneAndUpdate(
           { _id: variantId },
-          { prodct_id:id,
+          {
+            prodct_id: id,
             price: variantPrice,
-            stock_quantity: variantStock,
+            stock_Id: stockId,
             variant_image: variantImage,
             sku: variantsSku,
-            istax:tax,     
-            costprice:costprice,
-            compareprice:cprice,
-            barcode:barcode,
+            istax: tax,
+            costprice: costprice,
+            compareprice: cprice,
+            barcode: variantbarcode,
             isVariandetails: Object.keys(attributes).length > 0 ? 1 : 0,
           },
-          { new: true}
+          { new: true }
         );
-      
-      const updatedetails =   await Variantdetail.findOneAndUpdate(
+
+        const updatedetails = await Variantdetail.findOneAndUpdate(
           { variant_id: updatedVariant._id },
           {
             Options: Object.keys(attributes),
             option_values: attributes,
           },
           { new: true }
-
         );
-        console.log(updatedetails,'below one')
+        console.log(updatedetails, "below one");
       }
       variantIndex++;
     }
 
-    
-
-    return NextResponse.json({ message: "Update Successfully", isSuccess: true });
+    return NextResponse.json({
+      message: "Update Successfully",
+      isSuccess: true,
+    });
   } catch (err) {
     console.error("Error updating product:", err);
     return NextResponse.json({
@@ -589,6 +633,3 @@ istax:tax
     });
   }
 };
-
-
-

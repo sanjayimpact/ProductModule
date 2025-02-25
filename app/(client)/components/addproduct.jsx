@@ -222,16 +222,16 @@ const{setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,sel
 
 //for vendor
   const handlevendor = (e)=>{
-    const newValue = e?.target?.value;
-    console.log(newValue);
+    const newValue = e?.target?.value|| " ";
+    const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
  
-    setvendorinput(newValue)
+    setvendorinput(values)
   }
 
   //for tags
   const handleinput = (e)=>{
 
-    const newValue = e.target.value;
+    const newValue = e?.target?.value || ' ';
 
 const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
 
@@ -242,11 +242,12 @@ const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
   //for producttype
 
   const  handleproductype=(e)=>{
-    const newValue = e?.target?.value;
-    console.log(newValue);
+    const newValue = e?.target?.value|| " ";
+    const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
+
  
 
-setinputProducttype (newValue);
+setinputProducttype (values);
   }
 
 
@@ -385,6 +386,9 @@ const goback = ()=>{
     getTags();
     getBrands();
     getproducttype();
+    setSelectedVendor('');
+    setSelectedTags([]);
+    setProductType('');
     if (debouncedSku) {
       checkSkuAvailability(debouncedSku);
     }
@@ -628,27 +632,9 @@ const Addnewpt =async()=>{
        
    
           <>
-          <Grid item xs = {6}>
-          <Typography variant="p" sx={{ fontWeight: "bold" }}>
-              My custom Location
-              </Typography>
-          </Grid>
-          <Grid item xs = {6}>
-          <TextField
-              size="small"
-              label="Stock Quantity"
-              fullWidth
-              variant="outlined"
-              placeholder="Stock"
-              value={formData.stocks}
-              onChange={handleChange("stocks")}
-              error={!!errors.stocks}
-              helperText={errors.stocks}
-            />
-
-          </Grid>
+         
       
-          <Grid item xs={6} mt={3}>
+          <Grid item xs={4} >
             <TextField
               size="small"
               label="Barcode"
@@ -661,7 +647,7 @@ const Addnewpt =async()=>{
               helperText={errors.Barcode}
             />
           </Grid>
-          <Grid item xs={6} mt={3}>
+          <Grid item xs={4} >
             <TextField
               size="small"
               label="SKU"
@@ -695,6 +681,20 @@ const Addnewpt =async()=>{
             />
           </Grid>
 
+          <Grid item xs = {4}>
+          <TextField
+              size="small"
+              label="Stock Quantity"
+              fullWidth
+              variant="outlined"
+              placeholder="Stock"
+              value={formData.stocks}
+              onChange={handleChange("stocks")}
+              error={!!errors.stocks}
+              helperText={errors.stocks}
+            />
+
+          </Grid>
         
           </>
     </Grid>
@@ -703,7 +703,7 @@ const Addnewpt =async()=>{
         )}
   
       
-  <Paper  elevation={3}
+  {options.length==0 &&(<Paper  elevation={3}
         sx={{
           mt:5,
           p: 2,
@@ -753,7 +753,7 @@ const Addnewpt =async()=>{
           </>
     </Grid>
  
-    </Paper>
+    </Paper>)}
 
 
 

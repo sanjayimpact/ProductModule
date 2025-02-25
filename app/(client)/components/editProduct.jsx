@@ -19,6 +19,7 @@ import {
   FormControlLabel,
   Checkbox,
   Autocomplete,
+  InputAdornment,
 
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -69,7 +70,7 @@ const[checkedtag,setchecked] = useState()
     costprice: currentProduct?.variants?.[0]?.costprice || "",
     cprice: currentProduct?.variants?.[0]?.compareprice || "",
     Barcode: currentProduct?.variants?.[0]?.barcode,
-    stocks: currentProduct?.variants?.[0]?.stock_quantity || 0,
+    stocks: currentProduct?.variants?.[0]?.stock_Id?.stocks || 0,
     brandName: currentProduct?.brand_id?.brand_name
 
 
@@ -90,6 +91,10 @@ const[checkedtag,setchecked] = useState()
   const [extractvariants, setExtractedVariants] = useState([]);
 
   // States for slug / sku checking (unchanged)
+  let splitweight = currentProduct?.variants?.[0]?.weight.split(" ")[0];
+    const [weight, setWeight] = useState( splitweight|| 0);
+    const [unit, setUnit] = useState("kg");
+    const totalWeight = `${weight} ${unit}`;
   const [checkingSlug, setCheckingSlug] = useState(false);
   const [slugError, setSlugError] = useState(false);
   const [checksku, setchecksku] = useState(false);
@@ -101,8 +106,8 @@ const[checkedtag,setchecked] = useState()
   // Debounce logic (unchanged)
   const computedSlug = formData.slug.toLowerCase().trim().replace(/\s+/g, "-");
   const debouncedSlug = useDebounce(computedSlug, 500);
-  // const computeSku = formData.sku.toLowerCase().trim().replace(/\s+/g, "-");
-  // const debouncedSku = useDebounce(computeSku, 500);
+  const computeSku = formData.sku.toUpperCase().trim().replace(/\s+/g, "-");
+  const debouncedSku = useDebounce(computeSku, 500);
 
   const handlevendor = (e) => {
     const newValue = e?.target?.value || '';
@@ -160,7 +165,7 @@ const[checkedtag,setchecked] = useState()
   const Addnewvendor = async () => {
     try {
       let addbrand = await axios.post("/api/brand", { brand_name: vendorinput });
-      console.log(addbrand);
+      
       getBrands();
     } catch (err) {
 
@@ -170,7 +175,7 @@ const[checkedtag,setchecked] = useState()
   const Addnewpt = async () => {
     try {
       let addbrand = await axios.post("/api/product_type", { product_type_name: productinput });
-      console.log(addbrand);
+     
       getproducttype();
     } catch (err) {
 
@@ -363,6 +368,8 @@ const[checkedtag,setchecked] = useState()
     formDataToSend.append("cprice", formData.cprice);
     formDataToSend.append("barcode", formData.Barcode);
     formDataToSend.append("istax", isTaxed);
+    formDataToSend.append("weight", totalWeight);
+
     if (selectedVendor?._id && selectedVendor._id.trim() !== "") {
       formDataToSend.append("brand", selectedVendor._id);
     }
@@ -428,6 +435,10 @@ const[checkedtag,setchecked] = useState()
           variant.price ? variant.price : 0
         );
         formDataToSend.append(
+          `variantdata[${index}][barcode]`,
+          variant.barcode ? variant.barcode :''
+        );
+        formDataToSend.append(
           `variantdata[${index}][stock]`,
           variant.stock ? variant.stock : 0
         );
@@ -439,6 +450,24 @@ const[checkedtag,setchecked] = useState()
           `variantdata[${index}][id]`,
           variant.id ? variant.id : null
         );
+        formDataToSend.append(
+          `variantdata[${index}][stockid]`,
+          variant.stockid
+          ? variant.stockid
+          : null
+        );
+        formDataToSend.append(
+          `variantdata[${index}][locationid]`,
+          variant.
+          locationid
+          
+          ? variant.
+          locationid
+          
+          : null
+        );
+
+
         if (variant.image) {
           if (variant.image instanceof File) {
             formDataToSend.append(`variantdata[${index}][image]`, variant.image);
@@ -493,6 +522,11 @@ const[checkedtag,setchecked] = useState()
 
   const checkSkuAvailability = async (sku) => {
     if (!sku.trim()) return;
+    if (sku === currentProduct?.variants?.[0]?.sku) {
+      setSlugError(false);
+      return;
+    }
+
     setchecksku(true);
     try {
       const response = await axios.get(`/api/sku?sku=${sku}`);
@@ -591,6 +625,11 @@ const[checkedtag,setchecked] = useState()
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSlug]);
+useEffect(()=>{
+  if (debouncedSku) {
+    checkSkuAvailability(debouncedSku);
+  }
+},[debouncedSku])
 
   const goback = () => {
     setshow(false);
@@ -856,6 +895,58 @@ const[checkedtag,setchecked] = useState()
           </Paper>
           )}
 
+
+{options.length==0 &&(<Paper  elevation={3}
+        sx={{
+          mt:5,
+          p: 2,
+        
+          backgroundColor: "#ffffff",
+          borderRadius: 2,
+        }}>
+
+
+
+          
+           <Typography variant="p" sx={{ fontWeight: "bold" }}>
+             Shipping
+              </Typography>
+    <Grid container spacing={2} sx={{ mt: 1 }}>
+       
+   
+          <>
+      
+          <Grid item xs={6} style={{ display: "flex", alignItems: "center" }}>
+      <TextField
+        label="Weight"
+        size="small"
+        variant="outlined"
+        value={weight}
+        onChange={(e)=>setWeight(e.target.value)}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <Select
+                value={unit}
+                onChange={(e)=>setUnit(e.target.value)}
+                size="small"
+                variant="standard"
+                disableUnderline
+                style={{ minWidth: "40px" }}
+              >
+                <MenuItem value="kg">kg</MenuItem>
+                <MenuItem value="g">g</MenuItem>
+              </Select>
+            </InputAdornment>
+          ),
+        }}
+      />
+     
+    </Grid>
+          </>
+    </Grid>
+ 
+    </Paper>)}
 
 
           <Variants

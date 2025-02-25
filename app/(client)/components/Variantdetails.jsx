@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import {
   Table,
   TableBody,
@@ -16,6 +17,20 @@ import {
 } from "@mui/material";
 import Image from "next/image";
 import DeleteIcon from "@mui/icons-material/Delete";
+
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+
 const InventoryTable = ({
   options,
   handleaddvariants,
@@ -29,6 +44,11 @@ const InventoryTable = ({
   const [groupedOptions, setGroupedOptions] = useState({});
   const [variantData, setVariantData] = useState([]);
   const [removedVariants, setRemovedVariants] = useState([]);
+    const [checksku, setchecksku] = useState(false);
+    const [skuError, setSkuError] = useState(false);
+  const computeSku = variantData?.sku?.toUpperCase().trim().replace(/\s+/g, "-");
+  const debouncedSku = useDebounce(computeSku, 500);
+
   // ✅ Convert uploaded image to URL (For preview purposes)
   // ;
   // ✅ Group options dynamically when options change
@@ -61,9 +81,10 @@ const InventoryTable = ({
           preview: variant.variant_image || "",
           image: variant.variant_image || "",
           price: variant.price || price || 0,
-          stock: variant.stock_quantity || stock ||0,
+          stock: variant.stock_Id.stocks || stock ||0,
           sku: variant.sku || sku || "",
           barcode: Barcode || variant.barcode || "",
+
         };
       });
   
@@ -106,8 +127,11 @@ const generateVariants = () => {
       image: "", // Will be updated when user uploads new image
       preview: existingVariant?.variant_image || "", // ✅ Show database image in preview
       price: existingVariant?.price || price || 0,
-      stock: existingVariant?.stock_quantity || stock  || 0,
+      stock: existingVariant?.stock_Id?.stocks || stock  || 0,
       sku: existingVariant?.sku || (index === 0 ? sku : `${sku}-${index}`) || " ",
+      stockid:existingVariant?.stock_Id?._id,
+      locationid:existingVariant?.stock_Id?.location_id,
+      barcode:existingVariant?.barcode || Barcode || "",
     };
   });
 
@@ -129,12 +153,57 @@ const generateVariants = () => {
       );
     }
   };
+  const checkSkuAvailability = async (sku, index) => {
+    if (!sku.trim()) return;
+    const currentVariant = variantData[index];
   
+    // ✅ Skip check if SKU is unchanged
+    if (currentVariant?.sku === sku) return;
+    
+    setchecksku(true); // Show loading indicator
+  
+    try {
+      let newSku = sku.toUpperCase().trim().replace(/\s+/g, "-");
+      let attempt = 1;
+      let isAvailable = false;
+  
+      // ✅ Loop until we find a unique SKU
+      while (!isAvailable) {
+        const response = await axios.get(`/api/sku?sku=${newSku}`);
+  
+        // Check if the SKU already exists in the database (response from API)
+        if (!response.data.exists && !variantData.some((variant) => variant.sku === newSku)) {
+          isAvailable = true;
+        } else {
+          newSku = `${sku}-${attempt}`; // Create a new SKU if the previous one exists
+          attempt++;
+        }
+      }
+  
+      // ✅ Update the SKU in state after finding a unique one
+      setVariantData((prevData) =>
+        prevData.map((item, i) => (i === index ? { ...item, sku: newSku } : item))
+      );
+  
+      setSkuError(false);
+    } catch (error) {
+      console.error("Error checking SKU availability:", error);
+      setSkuError(true);
+    } finally {
+      setchecksku(false);
+    }
+  };
+  
+
+
   
 
   // ✅ Handle price, stock, and SKU changes
   const handleChange = (index, field, value) => {
-
+    if (field === "sku") {
+      checkSkuAvailability(value, index); // Check SKU when changed
+    }
+  
     
     setVariantData((prevData) =>
       prevData.map((item, i) =>
@@ -174,9 +243,12 @@ const generateVariants = () => {
     handleaddvariants(variantData);
  
   }, [variantData]);
-
-
-
+  useEffect(() => {
+    if (debouncedSku) {
+      checkSkuAvailability(debouncedSku);
+    }
+  }, [debouncedSku]);
+  
   return (
     <Box sx={{ mt: 5 }}>
       <TableContainer component={Paper} sx={{ mt: 5 }}>
@@ -272,7 +344,7 @@ const generateVariants = () => {
                       variant="outlined"
                       size="small"
                       type="number"
-                      value={variant.stock ||stock}
+                      value={variant.stock}
                       onChange={(e) => handleChange(index, "stock", e.target.value)}
                       inputProps={{ min: 0, style: { textAlign: "center" } }}
                     />
@@ -286,6 +358,14 @@ const generateVariants = () => {
     size="small"
     value={variant.sku}
     onChange={(e) => handleChange(index, "sku", e.target.value)}
+    error={skuError || checksku}
+    helperText={
+      checksku
+        ? "Sku exists, generating new one..."
+        : skuError
+        ? "check availability"
+        : ""
+    }
     inputProps={{ style: { textAlign: "center" } }}
   />
 </TableCell>

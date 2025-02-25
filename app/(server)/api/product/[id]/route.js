@@ -5,6 +5,7 @@ import { Variantdetail } from "@/app/(server)/models/variantdetail";
 import { Brand } from "@/app/(server)/models/brand";
 import { Tag } from "@/app/(server)/models/tags";
 import { ProductType } from "@/app/(server)/models/product_type";
+import { Stock } from "@/app/(server)/models/stock";
 export const DELETE = async(req,{params})=>{
 
     try{ 
@@ -51,13 +52,13 @@ export const GET = async (req, { params }) => {
   
       // ✅ Fetch the product by ID
       const product = await Product.findById(id).populate({path:'brand_id'}).populate({path:'tag_id'}).populate({path:'producttype_id'});
-      console.log(product);
+ 
       if (!product) {
         return NextResponse.json({ message: "Product not found" ,data:[]}, { status: 200});
       }
   
       // ✅ Fetch variants for the product
-      const variants = await Variant.find({ product_id: id });
+      const variants = await Variant.find({ product_id: id }).populate({path:'stock_Id'});
   
       // ✅ Fetch variant details for each variant
       const variantData = await Promise.all(
@@ -68,7 +69,8 @@ export const GET = async (req, { params }) => {
          
           return {
             ...variant._doc, // Spread variant data
-            variantDetails, // Attach variant details
+            variantDetails,
+           
           };
         })
       );
@@ -78,7 +80,7 @@ export const GET = async (req, { params }) => {
         ...product._doc, // Spread product data
         variants: variantData, // Attach variants with details
       };
-  
+  console.log(responseData);
       return NextResponse.json({
         message: "Successfully fetched",
         data: responseData,

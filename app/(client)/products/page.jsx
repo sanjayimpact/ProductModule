@@ -137,9 +137,10 @@ useEffect(()=>{
 
 
         {/* Total Variations Count */}
-        <TableCell sx={{ color: product?.variants?.length > 0 ? 'black' : 'red' }}>
-  {product?.variants?.reduce((total, variant) => total + (variant?.stock_quantity || 0), 0)} in stock
-  {product?.variants?.length > 0 ? ` for ${product.variants.length} variants` : ''}
+        <TableCell sx={{ color: product?.variants?.length > 0 ? 'black':'gray' }}>
+  {product?.variants?.length > 0
+    ? `${product.variants.reduce((total, variant) => total + (variant?.stock_Id?.stocks || 0), 0)} in stock for ${product.variants.length} variants`
+    : `${product?.defaultstock || 0} in stock`} {/* Show defaultStock if no variants exist */}
 </TableCell>
 
     
