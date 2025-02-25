@@ -54,7 +54,7 @@ export default function EditProductForm({ currentProduct }) {
   const [editProduct, seteditProduct] = useState(true);
   const [lastCheckedSlug, setLastCheckedSlug] = useState("")
   const[removetag,setremovetag] = useState([]);
-
+const[checkedtag,setchecked] = useState()
 
   // Initialize form data with currentProduct (if editing)
   const [formData, setFormData] = useState({
@@ -127,15 +127,20 @@ export default function EditProductForm({ currentProduct }) {
 
   }
   const handleTagChange = (_, newValue) => {
+    // Remove duplicates by converting to a Set and back to an array
+    const uniqueTags = Array.from(new Set(newValue.map(tag => tag.tag_name)))
+      .map(tag_name => newValue.find(tag => tag.tag_name === tag_name));
+  
     // Find removed tag(s) by comparing old and new arrays
-    const removedTags = selectedTags.find(tag => !newValue.includes(tag));
+    const removedTags = selectedTags.find(tag => !uniqueTags.includes(tag));
   
     if (removedTags) {
       setremovetag((prev) => [...prev, removedTags]); // Store removed tag
     }
   
-    setSelectedTags(newValue); // Update selected tags
+    setSelectedTags(uniqueTags); // Update selected tags with unique values
   };
+  
   
 
   const Addnewtags = async () => {
@@ -1012,6 +1017,7 @@ export default function EditProductForm({ currentProduct }) {
                     multiple
                     options={alltags}
                     value={selectedTags}
+                    isOptionEqualToValue={(option, value) => option.tag_name === value.tag_name}
                     getOptionLabel={(option) => option.tag_name || ""}
                     onInputChange={handleinput}
                     onChange={handleTagChange}

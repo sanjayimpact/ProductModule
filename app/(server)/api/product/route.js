@@ -290,7 +290,7 @@ export const PATCH = async (req, res) => {
 
     // Parse the incoming FormData
     const data = await req.formData();
-console.log(data);
+
 
     // Extract product fields from FormData
     const id = data.get("productId");
@@ -338,8 +338,8 @@ console.log(data);
       product_description: description || product.product_description,
       product_slug: slug || product.product_slug,
       product_status: status || product.product_status,
-      brand_id: brandid || product.brand_id,
-      producttype_id: product_type || product.producttype_id,
+      brand_id:brandid?brandid:null,
+      producttype_id: product_type?product_type :null,
       tag_id:updatedTags
     };
 

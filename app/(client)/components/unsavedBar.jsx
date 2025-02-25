@@ -41,7 +41,7 @@ export default function UnsavedProductBar() {
         >
           Discard
         </Button>
-        <Button
+        <Button 
           variant="contained"
           sx={{
             textTransform: "none",

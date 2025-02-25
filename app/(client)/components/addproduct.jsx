@@ -33,7 +33,7 @@ import { useECart } from "../Context/eCartcontext";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
-
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
 const checkedIcon = <CheckBoxIcon fontSize="small" />;
 
@@ -433,7 +433,8 @@ const Addnewpt =async()=>{
     <>
 
       {/* Product Form Section */}
-     <Grid container spacing={2} >
+     <Grid container spacing={2}  >
+   
       <Grid item xs={9} >
       <IconButton onClick={goback}>
     <ArrowBackIcon />

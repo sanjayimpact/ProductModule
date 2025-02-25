@@ -123,11 +123,11 @@ const closeProduct = () => {
         display:'flex',
         justifyContent:'center',
         position:'absolute',
-        width:"50%",
+        width:"100%",
         top:'11px',
         zIndex:999
        }}>
-       <UnsavedProductBar></UnsavedProductBar>
+       {/* <UnsavedProductBar></UnsavedProductBar> */}
        </div>
         </Toolbar>
       </AppBar>
