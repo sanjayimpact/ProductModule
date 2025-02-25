@@ -52,6 +52,10 @@ const varianSchema = new mongoose.Schema({
         type:Boolean,
         enum:[true,false],
         default:false
+    },
+    weight:{
+        type:String,
+        trim:true,
     }
 },{timestamps:true});
 export const Variant = mongoose.models.Variant || mongoose.model('Variant', varianSchema);

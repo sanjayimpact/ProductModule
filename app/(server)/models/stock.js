@@ -18,3 +18,4 @@ const stockSchema = new mongoose.Schema({
     }
 
 },{timestamps:true})
+export const Stock = mongoose.models.Stock || mongoose.model('Stock', stockSchema);

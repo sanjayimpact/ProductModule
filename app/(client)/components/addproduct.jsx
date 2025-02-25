@@ -76,6 +76,9 @@ const{setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,sel
     stocks:"",
     tags:""
   });
+  const [weight, setWeight] = useState(0);
+  const [unit, setUnit] = useState("kg");
+  const totalWeight = `${weight} ${unit}`;
   const[inputvalue,setInputvalue] = useState(null);
   const [isTaxed, setIsTaxed] = useState(false);
   const [iserror, seterror] = useState(false);
@@ -299,6 +302,7 @@ setinputProducttype (newValue);
     formDataToSend.append("Barcode",formData?.Barcode);
     formDataToSend.append("tax",isTaxed);
     formDataToSend.append("stocks",formData?.stocks);
+    formDataToSend.append("weight",totalWeight);
     if (selectedVendor?._id && selectedVendor._id.trim() !== "") {
       formDataToSend.append("brand", selectedVendor._id);
     }
@@ -623,8 +627,27 @@ const Addnewpt =async()=>{
        
    
           <>
+          <Grid item xs = {6}>
+          <Typography variant="p" sx={{ fontWeight: "bold" }}>
+              My custom Location
+              </Typography>
+          </Grid>
+          <Grid item xs = {6}>
+          <TextField
+              size="small"
+              label="Stock Quantity"
+              fullWidth
+              variant="outlined"
+              placeholder="Stock"
+              value={formData.stocks}
+              onChange={handleChange("stocks")}
+              error={!!errors.stocks}
+              helperText={errors.stocks}
+            />
+
+          </Grid>
       
-          <Grid item xs={4}>
+          <Grid item xs={6} mt={3}>
             <TextField
               size="small"
               label="Barcode"
@@ -637,7 +660,7 @@ const Addnewpt =async()=>{
               helperText={errors.Barcode}
             />
           </Grid>
-          <Grid item xs={4}>
+          <Grid item xs={6} mt={3}>
             <TextField
               size="small"
               label="SKU"
@@ -671,20 +694,7 @@ const Addnewpt =async()=>{
             />
           </Grid>
 
-          <Grid item xs = {4}>
-          <TextField
-              size="small"
-              label="Stock Quantity"
-              fullWidth
-              variant="outlined"
-              placeholder="Stock"
-              value={formData.stocks}
-              onChange={handleChange("stocks")}
-              error={!!errors.stocks}
-              helperText={errors.stocks}
-            />
-
-          </Grid>
+        
           </>
     </Grid>
  
@@ -692,7 +702,57 @@ const Addnewpt =async()=>{
         )}
   
       
+  <Paper  elevation={3}
+        sx={{
+          mt:5,
+          p: 2,
+        
+          backgroundColor: "#ffffff",
+          borderRadius: 2,
+        }}>
 
+
+
+          
+           <Typography variant="p" sx={{ fontWeight: "bold" }}>
+             Shipping
+              </Typography>
+    <Grid container spacing={2} sx={{ mt: 1 }}>
+       
+   
+          <>
+      
+          <Grid item xs={6} style={{ display: "flex", alignItems: "center" }}>
+      <TextField
+        label="Weight"
+        size="small"
+        variant="outlined"
+        value={weight}
+        onChange={(e)=>setWeight(e.target.value)}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <Select
+                value={unit}
+                onChange={(e)=>setUnit(e.target.value)}
+                size="small"
+                variant="standard"
+                disableUnderline
+                style={{ minWidth: "40px" }}
+              >
+                <MenuItem value="kg">kg</MenuItem>
+                <MenuItem value="g">g</MenuItem>
+              </Select>
+            </InputAdornment>
+          ),
+        }}
+      />
+     
+    </Grid>
+          </>
+    </Grid>
+ 
+    </Paper>
 
 
 

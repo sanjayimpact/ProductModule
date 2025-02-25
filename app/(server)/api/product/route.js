@@ -25,7 +25,7 @@ export const POST = async (req, res) => {
     let payload = await req.formData();
  
     let tags = payload.get("tags");
-    console.log(payload);
+   
     let productType = payload.get("product_type") ||' ';
     let alltags = tags?.split(",");
     const  brand = payload.get("brand") || ' ';
@@ -42,6 +42,7 @@ export const POST = async (req, res) => {
     const Barcode = payload.get("Barcode") || " ";
     const isTax = payload.get("tax");
     const stocks = payload.get("stocks");
+    const weight = payload.get("weight");
     console.log(payload);
     // ✅ Process Images and Save Them Locally
     let featuredFilePaths = [];
@@ -118,6 +119,7 @@ export const POST = async (req, res) => {
         variant_image: variantImage,
         isVariandetails: 0,
         istax:isTax,
+        weight:weight,
         isdefault:true
       });
       await newVariant.save();
@@ -180,6 +182,7 @@ export const POST = async (req, res) => {
           variant_image: variantImage,
           isVariandetails: isVariandetails,
           istax:isTax,
+          weight:weight,
           isdefault:variantIndex===0?true:false 
         });
         await newVariant.save();
