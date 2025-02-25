@@ -918,6 +918,7 @@ useEffect(()=>{
 
                 <Grid item xs={4}>
                   <TextField
+                  type="Number"
                     size="small"
                     label="Stock Quantity"
                     fullWidth
