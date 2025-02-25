@@ -15,6 +15,11 @@ const stockSchema = new mongoose.Schema({
     shop_id:{
         type:Number,
         default:0
+    },
+    isdefault:{
+        type:Boolean,
+        enum:[true,false],
+        default:false
     }
 
 },{timestamps:true})
