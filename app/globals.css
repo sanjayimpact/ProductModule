@@ -9,6 +9,9 @@
     --foreground: #ededed;
   }
 }
+body {
+  padding-right: 0px !important;
+}
 
 html,
 body {
@@ -42,4 +45,7 @@ a {
 }
 .custom_checkbox span{
   font-size: 12px !important;
+}
+.custom_tax span{
+  font-size:13px !important;
 }

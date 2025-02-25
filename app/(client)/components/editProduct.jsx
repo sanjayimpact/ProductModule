@@ -839,8 +839,8 @@ useEffect(()=>{
                 </Grid>
 
                 <Grid item xs={4}>
-                  <FormControlLabel
-                    control={<Checkbox checked={isTaxed} onChange={(e) => setIsTaxed(e.target.checked)} />}
+                  <FormControlLabel className="custom_tax"
+                    control={<Checkbox checked={isTaxed} size="small" onChange={(e) => setIsTaxed(e.target.checked)} />}
                     label="Charge tax on this product"
                   />
                 </Grid>
