@@ -34,5 +34,5 @@ const connectDB = async () => {
   }
 };
 connectDB();
-// Export the function to be used in Next.js server components
+
 export default connectDB;
