@@ -106,7 +106,14 @@ const{setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,sel
   const [skuError, setSkuError] = useState(false);
 
   // Debounce the computed slug based on the title.
-  const computedSlug = formData.title.toLowerCase().trim().replace(/\s+/g, "-");
+  const computedSlug = formData.title
+  .toLowerCase()
+  .trim()
+  .replace(/[^a-z0-9]+/g, "-")  // Replace any non-alphanumeric character with a hyphen
+  .replace(/^-+|-+$/g, ""); // Remove leading or trailing hyphens
+
+
+
   const debouncedSlug = useDebounce(computedSlug, 500);
   const computeSku = formData.sku.toUpperCase().trim().replace(/\s+/g, "-");
   const debouncedSku = useDebounce(computeSku, 500);
@@ -841,27 +848,8 @@ const Addnewpt =async()=>{
    
           <>
       
-          <Grid item xs={6}>
-            
-            <TextField
-              label="URL handle"
-              size="small"
-              fullWidth
-              variant="outlined"
-              // Show the updated slug from formData; fallback to computed slug
-              value={formData.slug || computedSlug}
-              disabled
-              error={slugError || checkingSlug} // When true, helperText appears in red
-              helperText={
-                checkingSlug
-                  ? "Slug exists, generating new one..."
-                  : slugError
-                  ? "check availability"
-                  : ""
-              }
-            />
-          </Grid>
-          <Grid item xs={6}>
+         
+          <Grid item xs={12}>
   <TextField
     label="Page title"
     size="small"
@@ -898,6 +886,26 @@ const Addnewpt =async()=>{
     {metadescription.length}/160
   </Typography>
 </Grid>
+<Grid item xs={12}>
+            
+            <TextField
+              label="URL handle"
+              size="small"
+              fullWidth
+              variant="outlined"
+              // Show the updated slug from formData; fallback to computed slug
+              value={formData.slug || computedSlug}
+              disabled
+              error={slugError || checkingSlug} // When true, helperText appears in red
+              helperText={
+                checkingSlug
+                  ? "Slug exists, generating new one..."
+                  : slugError
+                  ? "check availability"
+                  : ""
+              }
+            />
+          </Grid>
 
           </>
     </Grid>
