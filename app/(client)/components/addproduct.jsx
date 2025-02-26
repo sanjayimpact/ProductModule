@@ -304,7 +304,7 @@ setinputProducttype (values);
 
   const handleSubmit = async () => {
 
-    const requiredFields = ["title","price"];
+    const requiredFields = ["title"];
     let newErrors = {};
 
     requiredFields.forEach((field) => {
@@ -459,7 +459,7 @@ const Addnewvendor = async()=>{
 const Addnewpt =async()=>{
   try{
     let addbrand= await axios.post("/api/product_type",{product_type_name:productinput});
-    console.log(addbrand);
+  
    getproducttype();
   }catch(err){
  
@@ -624,6 +624,7 @@ const Addnewpt =async()=>{
               fullWidth
               variant="outlined"
               placeholder="Enter price"
+            
               value={formData.price}
               onChange={handleChange("price")}
               error={!!errors.price}

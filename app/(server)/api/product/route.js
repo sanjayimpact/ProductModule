@@ -12,19 +12,19 @@ import { Stock } from "../../models/stock";
 export const POST = async (req, res) => {
   try {
     await connectDB();
+    //globalvariables
     let isVariandetails;
-    // ✅ Get FormData
     let stockid;
 
     let payload = await req.formData();
-
+//get the all  formdata
     let tags = payload.get("tags");
 
     let productType = payload.get("product_type") || " ";
     let alltags = tags?.split(",");
     const brand = payload.get("brand") || " ";
 
-    // ✅ Extract Product Data
+
     const title = payload.get("title");
     const description = payload.get("description");
     const price = payload.get("price") || "0"; // Default price
@@ -39,13 +39,13 @@ export const POST = async (req, res) => {
     const weight = payload.get("weight");
 
     const publish_status = payload.get("publish");
-    let page_title= payload.get("page_title");
-   page_title= page_title || title;
-   let meta_description = payload.get("meta_description");
-   meta_description = meta_description || description;
+    let page_title = payload.get("page_title");
+    page_title = page_title || title;
+    let meta_description = payload.get("meta_description");
+    meta_description = meta_description || description;
 
-    console.log(payload);
-    // ✅ Process Images and Save Them Locally
+    //Process Images and Save Them Locally
+
     let featuredFilePaths = [];
     for (let [key, file] of payload.entries()) {
       if (key.startsWith("images[")) {
@@ -60,7 +60,7 @@ export const POST = async (req, res) => {
       }
     }
 
-    // ✅ Save Product
+    //save the product
     const product = new Product({
       product_name: title,
       product_slug: slug,
@@ -68,7 +68,7 @@ export const POST = async (req, res) => {
       product_status: status,
       featured_image: featuredFilePaths,
       publish_status: publish_status,
-      page_title: page_title ,
+      page_title: page_title,
       meta_description: meta_description,
       // Only save `tag_id` if it has valid tags
       tag_id: alltags && alltags.length > 0 ? alltags : [],
@@ -81,7 +81,7 @@ export const POST = async (req, res) => {
 
     await product.save();
 
-    // ✅ Extract Options Dynamically
+    //Extract Options Dynamically
     const options = [];
     let optIndex = 0;
     // If no option is provided, add a default option.
@@ -100,7 +100,8 @@ export const POST = async (req, res) => {
       optIndex++;
       isVariandetails = 1;
     }
-    if (totalstock) {
+    // create a default stock
+  
       //create a default location
       let defaultlocation = new Location({
         name: "default",
@@ -118,11 +119,11 @@ export const POST = async (req, res) => {
       let stocks = await stock.save();
 
       stockid = stocks?._id;
-    }
+    
 
-    // ✅ Process Variant Data from the Payload
+    //Process Variant Data from the Payload
     const savedVariants = [];
-    // Check if any variant data is provided. If not, create an empty variant.
+    // Check if any variant data is provided. If not, create an default variant.
     if (!payload.has("variantdata[0][price]")) {
       // No variant data provided – create a default empty variant.
       const variantPrice = price;
@@ -249,10 +250,10 @@ export const POST = async (req, res) => {
 // get the product
 export const GET = async () => {
   try {
-    // ✅ Fetch all products
+    //Fetch all products
     let products = await Product.find({});
 
-    // ✅ Fetch variants and variant details for each product
+    // Fetch variants and variant details for each product
     let responseData = await Promise.all(
       products.map(async (product) => {
         let variants = await Variant.find({
@@ -275,16 +276,16 @@ export const GET = async () => {
             });
 
             return {
-              ...variant._doc, // Spread variant data
-              variantDetails, // Attach variant details
+              ...variant._doc, 
+              variantDetails, 
             };
           })
         );
 
         return {
           defaultstock,
-          ...product._doc, // Spread product data
-          variants: variantData, // Attach variants with details
+          ...product._doc, 
+          variants: variantData, 
         };
       })
     );
@@ -306,7 +307,7 @@ export const PATCH = async (req, res) => {
     let stockId;
     // Parse the incoming FormData
     const data = await req.formData();
-  
+    
 
     // Extract product fields from FormData
     const id = data.get("productId");
@@ -322,16 +323,15 @@ export const PATCH = async (req, res) => {
     const barcode = data.get("barcode");
     const brandid = data.get("brand");
     const product_type = data.get("product_type");
-
-    const publish_status =data.get("publish");
-    let page_title= data.get("page_title");
-   page_title= page_title || title;
-   let meta_description = data.get("meta_description");
-   meta_description = meta_description || description;
-  
-
-
-
+    const defaultstock = data.get("stocks");
+    const defaultstockId = data.get("defaultstockId");
+    const defaultvariantId = data.get("defaultvariantId");
+    const weight = data.get("weight");
+    const publish_status = data.get("publish");
+    let page_title = data.get("page_title");
+    page_title = page_title || title;
+    let meta_description = data.get("meta_description");
+    meta_description = meta_description || description;
 
     const atags = new Set(data.get("tags")?.split(",") || []);
     const rtags = new Set(data.get("removetag")?.split(",") || []);
@@ -348,7 +348,7 @@ export const PATCH = async (req, res) => {
     );
 
     // Remove tags that are in rtags
-    rtags.forEach((tag) => existingTags.delete(tag.toString())); // Ensure consistency in string format
+    rtags.forEach((tag) => existingTags.delete(tag.toString())); 
 
     // Add only new unique tags
     atags.forEach((tag) => existingTags.add(tag.toString())); // Convert added tags to strings
@@ -406,6 +406,30 @@ export const PATCH = async (req, res) => {
 
     // Save the updated product
     await Product.findByIdAndUpdate(id, updatedProduct);
+// update the default one stockID
+    if (defaultstockId) {
+      const updateStocks = await Stock.findByIdAndUpdate(
+        { _id: defaultstockId },
+        { stocks: defaultstock },
+        { new: true }
+      );
+    }
+// here  also update the default variant
+    if (defaultvariantId) {
+      const updateVariants = await Variant.findByIdAndUpdate(
+        { _id: defaultvariantId },
+        {
+          price: price,
+          compareprice: cprice,
+          costprice: costprice,
+          barcode: barcode,
+          weight: weight,
+          sku: sku,
+          istax: tax,
+        },
+        { new: true }
+      );
+    }
 
     // Process removed variants by id single variants
     let removevariantIdsToDelete = [];
@@ -469,7 +493,7 @@ export const PATCH = async (req, res) => {
       removeIndex++;
     }
 
-    // ✅ Delete Variants that Match Removed Options
+    // Delete Variants that Match Removed Options
     if (Object.keys(removeOptions).length > 0) {
       for (const [optionName, removedValues] of Object.entries(removeOptions)) {
         // Find all variants with matching option values to delete
@@ -520,13 +544,19 @@ export const PATCH = async (req, res) => {
         }
       }
     }
-let findid = await Location.findOne({isdefault:true});
 
-let lid = findid?._id;
+
+    // use the default location for every stock
+    let findid = await Location.findOne({ isdefault: true });
+
+    let lid = findid?._id;
     let locationid = data.get(`variantdata[0][locationid]`);
-    if(locationid==='null'){
-       locationid=lid;
+    if (locationid === "null") {
+      locationid = lid;
     }
+
+
+    // if we have variants then update those existing variant with their corresponding id
     let variantIndex = 0;
     while (data.has(`variantdata[${variantIndex}][price]`)) {
       const variantId = data.get(`variantdata[${variantIndex}][id]`);
@@ -582,7 +612,7 @@ let lid = findid?._id;
         });
 
         await newStock.save();
-        console.log(newStock);
+ 
         stockId = newStock._id; // Assign newly created stockId
       } else {
         const updateStock = await Stock.findOneAndUpdate(
@@ -590,7 +620,7 @@ let lid = findid?._id;
           { stocks: variantStock },
           { new: true }
         );
-        console.log(updateStock);
+
       }
 
       // If variantId is "null" or not provided, create a new variant & variantdetail
@@ -642,7 +672,7 @@ let lid = findid?._id;
           },
           { new: true }
         );
-        console.log(updatedetails, "below one");
+ 
       }
       variantIndex++;
     }

@@ -80,7 +80,7 @@ export const GET = async (req, { params }) => {
         ...product._doc, // Spread product data
         variants: variantData, // Attach variants with details
       };
-  console.log(responseData);
+
       return NextResponse.json({
         message: "Successfully fetched",
         data: responseData,

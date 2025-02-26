@@ -7,8 +7,7 @@ export const GET = async (request) => {
         // Extract query parameters from the request URL
         const { searchParams } = new URL(request.url);
         const slug = searchParams.get("slug"); // Get 'slug' from query params
-      console.log(slug);
-      
+
         if (!slug) {
             return NextResponse.json({ message: "Slug parameter is required" }, { status: 400 });
         }

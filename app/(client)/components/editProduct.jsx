@@ -56,8 +56,8 @@ export default function EditProductForm({ currentProduct }) {
 
   const [editProduct, seteditProduct] = useState(true);
   const [lastCheckedSlug, setLastCheckedSlug] = useState("")
-  const[removetag,setremovetag] = useState([]);
-const[checkedtag,setchecked] = useState()
+  const [removetag, setremovetag] = useState([]);
+  const [checkedtag, setchecked] = useState()
 
   // Initialize form data with currentProduct (if editing)
   const [formData, setFormData] = useState({
@@ -68,15 +68,15 @@ const[checkedtag,setchecked] = useState()
     sku: currentProduct?.variants?.[0]?.sku || "",
     images: currentProduct?.featured_image ? [...currentProduct.featured_image] : [],
     status: currentProduct?.product_status || "",
-    publish:currentProduct?.publish_status || "",
+    publish: currentProduct?.publish_status || "",
     slug: currentProduct?.product_slug || "",
     costprice: currentProduct?.variants?.[0]?.costprice || "",
     cprice: currentProduct?.variants?.[0]?.compareprice || "",
     Barcode: currentProduct?.variants?.[0]?.barcode,
     stocks: currentProduct?.variants?.[0]?.stock_Id?.stocks || 0,
     brandName: currentProduct?.brand_id?.brand_name,
-    page_title:currentProduct?.page_title || "",
-    meta_description:currentProduct?.meta_description || "",
+    page_title: currentProduct?.page_title || "",
+    meta_description: currentProduct?.meta_description || "",
 
 
   });
@@ -97,9 +97,9 @@ const[checkedtag,setchecked] = useState()
 
   // States for slug / sku checking (unchanged)
   let splitweight = currentProduct?.variants?.[0]?.weight.split(" ")[0];
-    const [weight, setWeight] = useState( splitweight|| 0);
-    const [unit, setUnit] = useState("kg");
-    const totalWeight = `${weight} ${unit}`;
+  const [weight, setWeight] = useState(splitweight || 0);
+  const [unit, setUnit] = useState("kg");
+  const totalWeight = `${weight} ${unit}`;
   const [checkingSlug, setCheckingSlug] = useState(false);
   const [slugError, setSlugError] = useState(false);
   const [checksku, setchecksku] = useState(false);
@@ -122,6 +122,7 @@ const[checkedtag,setchecked] = useState()
 
     setvendorinput(values)
   }
+
   const handleproductype = (e) => {
     const newValue = e?.target?.value || '';
     const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
@@ -143,18 +144,18 @@ const[checkedtag,setchecked] = useState()
     // Remove duplicates by converting to a Set and back to an array
     const uniqueTags = Array.from(new Set(newValue.map(tag => tag.tag_name)))
       .map(tag_name => newValue.find(tag => tag.tag_name === tag_name));
-  
+
     // Find removed tag(s) by comparing old and new arrays
     const removedTags = selectedTags.find(tag => !uniqueTags.includes(tag));
-  
+
     if (removedTags) {
       setremovetag((prev) => [...prev, removedTags]); // Store removed tag
     }
-  
+
     setSelectedTags(uniqueTags); // Update selected tags with unique values
   };
-  
-  
+
+
 
   const Addnewtags = async () => {
     try {
@@ -170,7 +171,7 @@ const[checkedtag,setchecked] = useState()
   const Addnewvendor = async () => {
     try {
       let addbrand = await axios.post("/api/brand", { brand_name: vendorinput });
-      
+
       getBrands();
     } catch (err) {
 
@@ -180,7 +181,7 @@ const[checkedtag,setchecked] = useState()
   const Addnewpt = async () => {
     try {
       let addbrand = await axios.post("/api/product_type", { product_type_name: productinput });
-     
+
       getproducttype();
     } catch (err) {
 
@@ -272,17 +273,17 @@ const[checkedtag,setchecked] = useState()
   const handleChange = (field) => (event) => {
     const { value } = event.target;
     let updatedValue = value;
-    if(field==="page_title"  && value.length>70){
+    if (field === "page_title" && value.length > 70) {
       return
     }
-    if(field==="meta_description"  && value.length>160){
+    if (field === "meta_description" && value.length > 160) {
       return;
     }
-    if(field==="description" && value.length>160){
+    if (field === "description" && value.length > 160) {
       return;
     }
 
-    
+
     if (field === "slug") {
       updatedValue = value
         .toLowerCase()
@@ -354,7 +355,7 @@ const[checkedtag,setchecked] = useState()
 
   // CREATE or UPDATE on submit
   const handleSubmit = async () => {
-    
+
 
     const requiredFields = ["title"];
     let newErrors = {};
@@ -375,33 +376,54 @@ const[checkedtag,setchecked] = useState()
     formDataToSend.append("productId", currentProduct?._id);
     formDataToSend.append("title", formData.title);
     formDataToSend.append("description", formData.description);
-    formDataToSend.append("price", formData.price);
-    formDataToSend.append("sku", formData.sku);
+
+
     formDataToSend.append("status", formData.status);
     formDataToSend.append("slug", formData.slug);
+
+    formDataToSend.append("stocks", formData.stocks);
+
     formDataToSend.append("costprice", formData.costprice);
     formDataToSend.append("cprice", formData.cprice);
-    formDataToSend.append("barcode", formData.Barcode);
+    formDataToSend.append("price", formData.price);
+    formDataToSend.append("sku", formData.sku);
     formDataToSend.append("istax", isTaxed);
     formDataToSend.append("weight", totalWeight);
+    formDataToSend.append("barcode", formData.Barcode);
+
     formDataToSend.append("publish", formData.publish);
-    formDataToSend.append("page_title",formData.page_title);
-    formDataToSend.append("meta_description",formData.meta_description);
+    formDataToSend.append("page_title", formData.page_title);
+    formDataToSend.append("meta_description", formData.meta_description);
+    if (options.length === 0) {
+      formDataToSend.append("stocks", formData.stocks);
+      formDataToSend.append("defaultstockId", currentProduct?.variants?.[0]?.stock_Id?._id)
+      formDataToSend.append("defaultvariantId", currentProduct?.variants?.[0]?._id)
+      formDataToSend.append("costprice", formData.costprice);
+      formDataToSend.append("cprice", formData.cprice);
+      formDataToSend.append("price", formData.price);
+      formDataToSend.append("sku", formData.sku);
+      formDataToSend.append("istax", isTaxed);
+      formDataToSend.append("weight", totalWeight);
+      formDataToSend.append("barcode", formData.Barcode);
+
+    }
+
+
 
     if (selectedVendor?._id && selectedVendor._id.trim() !== "") {
       formDataToSend.append("brand", selectedVendor._id);
     }
-    
+
     if (selectedProducttype?._id && selectedProducttype._id.trim() !== "") {
       formDataToSend.append("product_type", selectedProducttype._id);
     }
-    
-    if(selectedTags.length>0){
-    formDataToSend.append("tags",selectedTags.map((tag)=>tag?._id));
+
+    if (selectedTags.length > 0) {
+      formDataToSend.append("tags", selectedTags.map((tag) => tag?._id));
     }
-    
-    if(removetag.length>0){
-      formDataToSend.append("removetag",removetag.map((item)=>item?._id));
+
+    if (removetag.length > 0) {
+      formDataToSend.append("removetag", removetag.map((item) => item?._id));
     }
 
 
@@ -437,7 +459,7 @@ const[checkedtag,setchecked] = useState()
     }
 
     // Append variant data
-    if (variants.length > 0) {
+    if (options.length > 0) {
       variants.forEach((variant, index) => {
         // Only iterate if attributes exists and is an object
         if (variant.attributes && typeof variant.attributes === "object") {
@@ -454,7 +476,7 @@ const[checkedtag,setchecked] = useState()
         );
         formDataToSend.append(
           `variantdata[${index}][barcode]`,
-          variant.barcode ? variant.barcode :''
+          variant.barcode ? variant.barcode : ''
         );
         formDataToSend.append(
           `variantdata[${index}][stock]`,
@@ -471,18 +493,18 @@ const[checkedtag,setchecked] = useState()
         formDataToSend.append(
           `variantdata[${index}][stockid]`,
           variant.stockid
-          ? variant.stockid
-          : null
+            ? variant.stockid
+            : null
         );
         formDataToSend.append(
           `variantdata[${index}][locationid]`,
           variant.
-          locationid
-          
-          ? variant.
-          locationid
-          
-          : null
+            locationid
+
+            ? variant.
+              locationid
+
+            : null
         );
 
 
@@ -643,11 +665,11 @@ const[checkedtag,setchecked] = useState()
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSlug]);
-useEffect(()=>{
-  if (debouncedSku) {
-    checkSkuAvailability(debouncedSku);
-  }
-},[debouncedSku])
+  useEffect(() => {
+    if (debouncedSku) {
+      checkSkuAvailability(debouncedSku);
+    }
+  }, [debouncedSku])
 
   const goback = () => {
     setshow(false);
@@ -659,32 +681,32 @@ useEffect(()=>{
   return (
     <>
 
-<Box display="flex" alignItems="center" justifyContent="space-between">
-  <Box display="flex" alignItems="center">
-    <IconButton onClick={goback}><ArrowBackIcon /></IconButton>
-    <Typography variant="p" fontWeight="bold">update product</Typography>
-  </Box>
-  <Button variant="contained" color="success" sx={{
-    borderRadius: 2,         // Adjust for the desired rounding
-    px: 2,
-    py: 0.5,
-    fontSize:'12px',
-    fontWeight: "bold",
-    textTransform: "none",
-    backgroundColor: "#333",  // Dark gray/black background
-    color: "#fff",            // White text
-    border: "1px solid #000", // Subtle border
-    "&:hover": {
-      backgroundColor: "#444", // Slightly lighter on hover
-    },
-  }} onClick={handleSubmit}>update</Button>
-</Box>
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box display="flex" alignItems="center">
+          <IconButton onClick={goback}><ArrowBackIcon /></IconButton>
+          <Typography variant="p" fontWeight="bold">update product</Typography>
+        </Box>
+        <Button variant="contained" color="success" sx={{
+          borderRadius: 2,         // Adjust for the desired rounding
+          px: 2,
+          py: 0.5,
+          fontSize: '12px',
+          fontWeight: "bold",
+          textTransform: "none",
+          backgroundColor: "#333",  // Dark gray/black background
+          color: "#fff",            // White text
+          border: "1px solid #000", // Subtle border
+          "&:hover": {
+            backgroundColor: "#444", // Slightly lighter on hover
+          },
+        }} onClick={handleSubmit}>update</Button>
+      </Box>
       <Grid container spacing={2}>
 
         <Grid item xs={9}>
-        
+
           <Typography variant="p" fontWeight="bold" >
-           
+
           </Typography>
           <Paper
             elevation={3}
@@ -727,9 +749,9 @@ useEffect(()=>{
                   error={!!errors.description}
                   helperText={errors.description}
                 />
-                 <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: formData.description.length >= 160 ? "red" : "gray" }}>
-                    {formData.description.length}/160
-                  </Typography>
+                <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: formData.description.length >= 160 ? "red" : "gray" }}>
+                  {formData.description.length}/160
+                </Typography>
               </Grid>
               <Grid item xs={6}>
                 <Box
@@ -918,7 +940,7 @@ useEffect(()=>{
 
                 <Grid item xs={4}>
                   <TextField
-                  type="Number"
+                    type="Number"
                     size="small"
                     label="Stock Quantity"
                     fullWidth
@@ -938,57 +960,57 @@ useEffect(()=>{
           )}
 
 
-{options.length==0 &&(<Paper  elevation={3}
-        sx={{
-          mt:5,
-          p: 2,
-        
-          backgroundColor: "#ffffff",
-          borderRadius: 2,
-        }}>
+          {options.length == 0 && (<Paper elevation={3}
+            sx={{
+              mt: 5,
+              p: 2,
+
+              backgroundColor: "#ffffff",
+              borderRadius: 2,
+            }}>
 
 
 
-          
-           <Typography variant="p" sx={{ fontWeight: "bold" }}>
-             Shipping
-              </Typography>
-    <Grid container spacing={2} sx={{ mt: 1 }}>
-       
-   
-          <>
-      
-          <Grid item xs={6} style={{ display: "flex", alignItems: "center" }}>
-      <TextField
-        label="Weight"
-        size="small"
-        variant="outlined"
-        value={weight}
-        onChange={(e)=>setWeight(e.target.value)}
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <Select
-                value={unit}
-                onChange={(e)=>setUnit(e.target.value)}
-                size="small"
-                variant="standard"
-                disableUnderline
-                style={{ minWidth: "40px" }}
-              >
-                <MenuItem value="kg">kg</MenuItem>
-                <MenuItem value="g">g</MenuItem>
-              </Select>
-            </InputAdornment>
-          ),
-        }}
-      />
-     
-    </Grid>
-          </>
-    </Grid>
- 
-    </Paper>)}
+
+            <Typography variant="p" sx={{ fontWeight: "bold" }}>
+              Shipping
+            </Typography>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+
+
+              <>
+
+                <Grid item xs={6} style={{ display: "flex", alignItems: "center" }}>
+                  <TextField
+                    label="Weight"
+                    size="small"
+                    variant="outlined"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Select
+                            value={unit}
+                            onChange={(e) => setUnit(e.target.value)}
+                            size="small"
+                            variant="standard"
+                            disableUnderline
+                            style={{ minWidth: "40px" }}
+                          >
+                            <MenuItem value="kg">kg</MenuItem>
+                            <MenuItem value="g">g</MenuItem>
+                          </Select>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+
+                </Grid>
+              </>
+            </Grid>
+
+          </Paper>)}
 
 
           <Variants
@@ -1024,7 +1046,7 @@ useEffect(()=>{
 
               <>
 
-                <Grid item xs={6}>
+                <Grid item xs={12}>
                   <TextField
                     label="Product Slug"
                     size="small"
@@ -1045,35 +1067,35 @@ useEffect(()=>{
                   />
                 </Grid>
 
-          <Grid item xs={6}>
-  <TextField
-    label="Page title"
-    size="small"
-    fullWidth
-    variant="outlined"
-    value={formData?.page_title} 
-    onChange={handleChange("page_title")}
-  />
-      <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: formData?.page_title.length >= 200 ? "red" : "gray" }}>
-      {formData?.page_title.length}/70
-    </Typography>
-</Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Page title"
+                    size="small"
+                    fullWidth
+                    variant="outlined"
+                    value={formData?.page_title}
+                    onChange={handleChange("page_title")}
+                  />
+                  <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: formData?.page_title.length >= 200 ? "red" : "gray" }}>
+                    {formData?.page_title.length}/70
+                  </Typography>
+                </Grid>
 
-<Grid item xs={12}>
-  <TextField
-    label="Meta description"
-    size="small"
-    fullWidth
-    variant="outlined"
-    rows={4}
-    multiline
-    value={formData?.meta_description} 
-    onChange={handleChange("meta_description")}
-  />
-    <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: formData.meta_description.length >= 160 ? "red" : "gray" }}>
-      {formData.meta_description.length}/160
-    </Typography>
-</Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Meta description"
+                    size="small"
+                    fullWidth
+                    variant="outlined"
+                    rows={4}
+                    multiline
+                    value={formData?.meta_description}
+                    onChange={handleChange("meta_description")}
+                  />
+                  <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: formData.meta_description.length >= 160 ? "red" : "gray" }}>
+                    {formData.meta_description.length}/160
+                  </Typography>
+                </Grid>
 
 
 
@@ -1113,49 +1135,49 @@ useEffect(()=>{
 
           </Paper>
           <Paper
-        elevation={3}
-        sx={{
-          p: 2,
-          mt:4,
-          backgroundColor: "#ffffff",
-          borderRadius: 2,
-        }}
-      >     <Typography variant="p" sx={{ fontWeight: "bold" }}>
-Publishing
-     </Typography>
-     
-      <Grid item xs={12} mt={1}>
-        
-      <FormControl component="fieldset">
-  <FormLabel component="legend"  sx={{fontWeight:600, fontSize:'14px',color:'black'}}>Sales channels</FormLabel>
-  <FormGroup>
-    <FormControlLabel  className="custom_checkbox"
-      control={
-        <Checkbox 
-        size="small"
-          checked={formData.publish.includes("Online Store")}
-          onChange={handleChange("publish")}
-          value="Online Store"
-        />
-      }
-      label="Online Store"
-    />
-    <FormControlLabel className="custom_checkbox"
-      control={
-        <Checkbox  sx={{fontSize:'12px'}}
-         size="small"
-          checked={formData.publish.includes("Other")}
-          onChange={handleChange("publish")}
-          value="Other"
-        />
-      }
-      label="Other"
-    />
-  </FormGroup>
-</FormControl>
+            elevation={3}
+            sx={{
+              p: 2,
+              mt: 4,
+              backgroundColor: "#ffffff",
+              borderRadius: 2,
+            }}
+          >     <Typography variant="p" sx={{ fontWeight: "bold" }}>
+              Publishing
+            </Typography>
 
-          </Grid>
-        </Paper>
+            <Grid item xs={12} mt={1}>
+
+              <FormControl component="fieldset">
+                <FormLabel component="legend" sx={{ fontWeight: 600, fontSize: '14px', color: 'black' }}>Sales channels</FormLabel>
+                <FormGroup>
+                  <FormControlLabel className="custom_checkbox"
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={formData.publish.includes("Online Store")}
+                        onChange={handleChange("publish")}
+                        value="Online Store"
+                      />
+                    }
+                    label="Online Store"
+                  />
+                  <FormControlLabel className="custom_checkbox"
+                    control={
+                      <Checkbox sx={{ fontSize: '12px' }}
+                        size="small"
+                        checked={formData.publish.includes("Other")}
+                        onChange={handleChange("publish")}
+                        value="Other"
+                      />
+                    }
+                    label="Other"
+                  />
+                </FormGroup>
+              </FormControl>
+
+            </Grid>
+          </Paper>
           <Paper
             elevation={3}
             sx={{
@@ -1240,21 +1262,21 @@ Publishing
                         Add {inputvalue}
                       </Button>
                     }
-                renderOption={(props, option, { selected }) => {
-                   // Destructure the key out and pass it explicitly.
-                   const { key, ...restProps } = props;
-                   return (
-                     <li key={key} {...restProps}>
-                       <Checkbox
-                         icon={icon}
-                         checkedIcon={checkedIcon}
-                         style={{ marginRight: 8 }}
-                         checked={selected}
-                       />
-                       {option.tag_name}
-                     </li>
-                   );
-                 }}
+                    renderOption={(props, option, { selected }) => {
+                      // Destructure the key out and pass it explicitly.
+                      const { key, ...restProps } = props;
+                      return (
+                        <li key={key} {...restProps}>
+                          <Checkbox
+                            icon={icon}
+                            checkedIcon={checkedIcon}
+                            style={{ marginRight: 8 }}
+                            checked={selected}
+                          />
+                          {option.tag_name}
+                        </li>
+                      );
+                    }}
                     renderInput={(params) => (
                       <TextField {...params} variant="outlined" label="Tags" placeholder="Select tags..." />
                     )}
@@ -1271,7 +1293,7 @@ Publishing
       </Grid>
 
 
-  
+
 
       <Snackbar
         open={snackbarOpen}

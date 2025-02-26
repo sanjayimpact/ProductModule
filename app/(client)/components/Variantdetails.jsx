@@ -81,7 +81,7 @@ const InventoryTable = ({
           preview: variant.variant_image || "",
           image: variant.variant_image || "",
           price: variant.price || price || 0,
-          stock: variant.stock_Id.stocks || stock ||0,
+          stock: variant.stock_Id.stocks || stock || 0,
           sku: variant.sku || sku || "",
           barcode: Barcode || variant.barcode || "",
 
