@@ -26,7 +26,7 @@ export const GET = async(req)=>{
     try{
         let tags = await Brand.find({shop_id:1});
         if(tags){
-            return NextResponse.json({data:tags,message:"Brand fetched successfully"},{status:200});
+            return NextResponse.json({data:tags,message:"Brand fetched successfully",isSuccess:true},{status:200});
         }
         return NextResponse.json({message:"No Brand found"},{status:404});
          

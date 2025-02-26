@@ -293,6 +293,7 @@ export const GET = async () => {
     return NextResponse.json({
       message: "Successfully fetched",
       data: responseData,
+      isSuccess:true
     });
   } catch (err) {
     console.error("Error fetching data:", err);
@@ -307,7 +308,7 @@ export const PATCH = async (req, res) => {
     let stockId;
     // Parse the incoming FormData
     const data = await req.formData();
-    
+    console.log(data);
 
     // Extract product fields from FormData
     const id = data.get("productId");

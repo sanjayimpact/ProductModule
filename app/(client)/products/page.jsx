@@ -28,15 +28,18 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import EditProductForm from "../components/editProduct";
 import Image from "next/image";
+import { deleteproducts, fetchProducts } from "../utils/api/products";
+import { ConnectingAirportsOutlined } from "@mui/icons-material";
 
 
 const Product = () => {
 
-  const { products, deleteproducts, fetchProducts ,setshow} = useECart();
+  const {setshow} = useECart();
   const [iserror, seterror] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const[products,setProducts] = useState([]);
   const [message, setMessage] = useState("");
 const router = useRouter();
 
@@ -62,7 +65,7 @@ const router = useRouter();
         setSnackbarOpen(true);
         setMessage(send?.message);
         router.push('/products')
-        fetchProducts();
+        getdata();
       }
       else {
         setSnackbarOpen(true);
@@ -72,8 +75,22 @@ const router = useRouter();
       }
     } catch (err) { }
   };
+const getdata = async()=>{
+  try{
+   let productdata = await fetchProducts();
+ if(productdata.isSuccess){
+   setProducts(productdata?.data);
+ setshow(false);
+ localStorage.setItem('add',false)
+  }
+  }
+  catch(err){
+
+  }
+}
+
   useEffect(() => {
-    fetchProducts()
+    getdata ()
     if(products.length===0){
       setshow(false);
       localStorage.setItem('add',false)

@@ -26,7 +26,7 @@ export const GET = async(req)=>{
     try{
         let productType= await ProductType.find({shop_id:1});
         if(productType){
-            return NextResponse.json({data:productType,message:"ProductType fetched successfully"},{status:200});
+            return NextResponse.json({data:productType,message:"ProductType fetched successfully",isSuccess:true},{status:200});
         }
         return NextResponse.json({message:"No ProductType found"},{status:404});
          

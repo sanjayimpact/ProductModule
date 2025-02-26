@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import Image from "next/image";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useECart } from "../Context/eCartcontext";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -32,12 +33,13 @@ function useDebounce(value, delay) {
 
 
 const InventoryTable = ({
+
   options,
-  handleaddvariants,
+
   price,
-  images,
+
   Barcode,
-  handleRemovedVariants,
+  
   currentProduct,sku,stock 
 
 }) => {
@@ -48,6 +50,7 @@ const InventoryTable = ({
     const [skuError, setSkuError] = useState(false);
   const computeSku = variantData?.sku?.toUpperCase().trim().replace(/\s+/g, "-");
   const debouncedSku = useDebounce(computeSku, 500);
+  const{handleaddvariants,handleRemovedVariants} =useECart()
 
   // ✅ Convert uploaded image to URL (For preview purposes)
   // ;

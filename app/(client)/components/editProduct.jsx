@@ -6,7 +6,7 @@ import {
   TextField,
   Typography,
   Button,
-  Divider,
+
   MenuItem,
   Select,
   InputLabel,
@@ -34,24 +34,17 @@ import Image from "next/image";
 import { useECart } from "../Context/eCartcontext";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
+import useDebounce from "../hooks/useDebounce";
+import { addproductype, addtag, addvendor, getBrands, getproducttype, getTags } from "../utils/api/products";
 // Custom hook to debounce a value
-function useDebounce(value, delay) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debouncedValue;
-}
 
 export default function EditProductForm({ currentProduct }) {
 
   const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
   const checkedIcon = <CheckBoxIcon fontSize="small" />;
 
-  const { setshow, allbrands, vendorinput, selectedVendor, setvendorinput, setSelectedVendor, getBrands, selectedTags, setSelectedTags, setinputProducttype, setProductType, selectedProducttype, allProductType, getproducttype, productinput, getTags, alltags, inputvalue, setInputvalue } = useECart();
+  const { setshow, allbrands, vendorinput, selectedVendor, setvendorinput, setSelectedVendor, selectedTags, setSelectedTags, setinputProducttype, setProductType, selectedProducttype, allProductType, productinput, alltags, inputvalue, setInputvalue,setalltags,setallProductType,setallbrands,options,variants, setvariants,removevariation, setremovevariation,removeoptions, setremoveoptions } = useECart();
   const router = useRouter();
 
   const [editProduct, seteditProduct] = useState(true);
@@ -88,8 +81,7 @@ export default function EditProductForm({ currentProduct }) {
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
 
-  // States for variants
-  const [variants, setvariants] = useState([]);
+
 
   // 1) Local state to hold the combined “option name -> array of values”
   const [existingOptions, setExistingOptions] = useState([]);
@@ -104,9 +96,9 @@ export default function EditProductForm({ currentProduct }) {
   const [slugError, setSlugError] = useState(false);
   const [checksku, setchecksku] = useState(false);
   const [skuError, setSkuError] = useState(false);
-  const [options, setOptions] = useState([]);
-  const [removeoptions, setremoveoptions] = useState([]);
-  const [removevariation, setremovevariation] = useState([]);
+
+
+
   const [isTaxed, setIsTaxed] = useState(currentProduct?.variants?.[0]?.istax);
   // Debounce logic (unchanged)
   const computedSlug = formData.slug.toLowerCase().trim().replace(/\s+/g, "-");
@@ -116,7 +108,7 @@ export default function EditProductForm({ currentProduct }) {
 
   const handlevendor = (e) => {
     const newValue = e?.target?.value || '';
-    const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
+    const values = newValue?.replace(/[^a-zA-Z0-9_-]/g, '');
 
 
 
@@ -125,7 +117,7 @@ export default function EditProductForm({ currentProduct }) {
 
   const handleproductype = (e) => {
     const newValue = e?.target?.value || '';
-    const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
+    const values = newValue?.replace(/[^a-zA-Z0-9_-]/g, '');
 
 
 
@@ -133,9 +125,9 @@ export default function EditProductForm({ currentProduct }) {
   }
   const handleinput = (e) => {
 
-    const newValue = e.target.value;
+    const newValue = e?.target?.value || '';
 
-    const values = newValue.replace(/[^a-zA-Z0-9_-]/g, '');
+    const values = newValue?.replace(/[^a-zA-Z0-9_-]/g, '');
 
     setInputvalue(values);
 
@@ -154,46 +146,66 @@ export default function EditProductForm({ currentProduct }) {
 
     setSelectedTags(uniqueTags); // Update selected tags with unique values
   };
+const getBTP=async()=>{
+  try{
+     let tags = await getTags();
+  
+     if(tags.isSuccess){
+       setalltags(tags?.data);
 
+     }
+     let brands = await getBrands();
+     if(brands.isSuccess){
+       setallbrands(brands?.data);
 
+     }
+     
+     let productTypes = await getproducttype();
+      if(productTypes.isSuccess){
+        setallProductType(productTypes?.data)
 
-  const Addnewtags = async () => {
-    try {
-      let addtag = await axios.post("/api/tag", { tag_name: inputvalue });
-
-      getTags();
-    } catch (err) {
-
-    }
-
-
+      }
+  }catch(err){  
+    console.log(err);
   }
-  const Addnewvendor = async () => {
-    try {
-      let addbrand = await axios.post("/api/brand", { brand_name: vendorinput });
+}
 
-      getBrands();
-    } catch (err) {
 
-    }
+const Addnewtags=async()=>{
+ try{
+
+   let senddata = await addtag(inputvalue);
+   console.log(senddata)
+   getBTP();
+ }catch(err){
+
+ }
+
+ 
+}
+const Addnewvendor = async()=>{
+  try{
+   let senddata = await addvendor(vendorinput);
+   
+
+   getBTP();
+  }catch(err){
+ 
   }
+}
 
-  const Addnewpt = async () => {
-    try {
-      let addbrand = await axios.post("/api/product_type", { product_type_name: productinput });
-
-      getproducttype();
-    } catch (err) {
-
-    }
+const Addnewpt =async()=>{
+  try{
+    let senddata= await addproductype(productinput);
+    getBTP();
+  }catch(err){
+ 
   }
-
+}
 
 
   useEffect(() => {
-    getBrands();
-    getTags();
-    getproducttype();
+    getBTP();
 
     if (currentProduct?.variants?.length) {
       // Set the entire variants array in state (unchanged)
@@ -334,24 +346,12 @@ export default function EditProductForm({ currentProduct }) {
 
 
 
-  const handleAddOptions = (values) => {
-    setOptions(values)
 
 
-  };
-  const handleRemovedVariants = (values) => {
-    setremovevariation(values);
-  }
 
-  const handlremoveOptions = (values) => {
-    setremoveoptions(values);
-  }
+
 
   // Handler for the new “variant details” coming from Variants
-  const handleaddvariants = (values) => {
-
-    setvariants(values);
-  };
 
   // CREATE or UPDATE on submit
   const handleSubmit = async () => {
@@ -1016,17 +1016,16 @@ export default function EditProductForm({ currentProduct }) {
           <Variants
             editProduct={editProduct}
             sku={formData?.sku}
-            // 3) We pass in the combined existingOptions (already extracted)
+         
             existingOptions={existingOptions}
-            extractvariants={extractvariants}
-            existingVariants={variants}
-            handleAddOptions={handleAddOptions}
-            handlremoveOptions={handlremoveOptions}
-            handleaddvariants={handleaddvariants}
+         
+      
+           
+
             price={formData?.price}
             stock={formData?.stocks}
             currentProduct={currentProduct}
-            handleRemovedVariants={handleRemovedVariants}
+           
             images={formData.images[0]}
             Barcode={formData.Barcode}
           />
@@ -1046,26 +1045,7 @@ export default function EditProductForm({ currentProduct }) {
 
               <>
 
-                <Grid item xs={12}>
-                  <TextField
-                    label="Product Slug"
-                    size="small"
-                    fullWidth
-                    variant="outlined"
-                    value={formData.slug || ""}
-                    onChange={handleChange("slug")}
-                    error={slugError || (formData.slug.trim() === "" && !checkingSlug)}
-                    helperText={
-                      checkingSlug
-                        ? "Checking slug availability..."
-                        : slugError
-                          ? "This slug already exists. Generating a new one..."
-                          : formData.slug.trim() === ""
-                            ? "Slug is required"
-                            : ""
-                    }
-                  />
-                </Grid>
+    
 
                 <Grid item xs={12}>
                   <TextField
@@ -1095,6 +1075,26 @@ export default function EditProductForm({ currentProduct }) {
                   <Typography variant="caption" sx={{ display: "block", textAlign: "right", color: formData.meta_description.length >= 160 ? "red" : "gray" }}>
                     {formData.meta_description.length}/160
                   </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Product Slug"
+                    size="small"
+                    fullWidth
+                    variant="outlined"
+                    value={formData.slug || ""}
+                    onChange={handleChange("slug")}
+                    error={slugError || (formData.slug.trim() === "" && !checkingSlug)}
+                    helperText={
+                      checkingSlug
+                        ? "Checking slug availability..."
+                        : slugError
+                          ? "This slug already exists. Generating a new one..."
+                          : formData.slug.trim() === ""
+                            ? "Slug is required"
+                            : ""
+                    }
+                  />
                 </Grid>
 
 

@@ -29,33 +29,25 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import Variants from "./variants";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import UnsavedProductBar from "./unsavedBar";
+
 import { generateRandomSKU } from "../utils/helper";
 import { useECart } from "../Context/eCartcontext";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+
+import useDebounce from "../hooks/useDebounce";
+import { addproductype, addtag, addvendor, getBrands, getproducttype, getTags } from "../utils/api/products";
 const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
 const checkedIcon = <CheckBoxIcon fontSize="small" />;
 
 
 
 // Custom hook to debounce a value
-function useDebounce(value, delay) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
 
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debouncedValue;
-}
 
 export default function ProductForm() {
-const{setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,selectedVendor, setSelectedVendor,selectedTags, setSelectedTags,setinputProducttype,setProductType,selectedProducttype,allProductType,getproducttype,productinput} = useECart();
+const{setshow,alltags,vendorinput,setvendorinput,allbrands,selectedVendor, setSelectedVendor,selectedTags, setSelectedTags,setinputProducttype,setProductType,selectedProducttype,allProductType,productinput,setalltags,setallProductType,setallbrands,options, setOptions,variants, setvariants,setremovevariation,setremoveoptions} = useECart();
 
   
 
@@ -95,8 +87,8 @@ const{setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,sel
   const [message, setMessage] = useState("");
 
   // States for options and variants
-  const [options, setOptions] = useState([]);
-  const [variants, setvariants] = useState([]);
+ 
+
  
   // States for slug checking
   const [checkingSlug, setCheckingSlug] = useState(false);
@@ -121,82 +113,82 @@ const{setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,sel
   // When the debounced slug changes, check for its availability.
   // create a random alphanumeric sku
 
-  const checkSkuAvailability = async (sku) => {
-    if (!sku.trim()) return;
-    setchecksku(true);
-    try {
-      const response = await axios.get(`/api/sku?sku=${sku}`);
-      if (response.data.exists) {
-        setSkuError(true);
-        setTimeout(async () => {
-          let newSku = sku;
-          let attempt = 1;
-          let isAvailable = false;
+    const checkSkuAvailability = async (sku) => {
+      if (!sku.trim()) return;
+      setchecksku(true);
+      try {
+        const response = await axios.get(`/api/sku?sku=${sku}`);
+        if (response.data.exists) {
+          setSkuError(true);
+          setTimeout(async () => {
+            let newSku = sku;
+            let attempt = 1;
+            let isAvailable = false;
 
-          while (!isAvailable) {
-            // Use newSku here to check updated value in each iteration.
-            const res = await axios.get(`/api/sku?sku=${newSku}`);
-            if (!res.data.exists) {
-              isAvailable = true;
-            } else {
-              newSku = `${sku}-${attempt}`;
-              attempt++;
+            while (!isAvailable) {
+              // Use newSku here to check updated value in each iteration.
+              const res = await axios.get(`/api/sku?sku=${newSku}`);
+              if (!res.data.exists) {
+                isAvailable = true;
+              } else {
+                newSku = `${sku}-${attempt}`;
+                attempt++;
+              }
             }
-          }
-         
-          setFormData((prev) => ({ ...prev, sku: newSku }));
-          setSkuError(false); // Corrected from setSlugError(false)
+          
+            setFormData((prev) => ({ ...prev, sku: newSku }));
+            setSkuError(false); // Corrected from setSlugError(false)
+            setchecksku(false);
+          }, 2000);
+        } else {
+          // If SKU is available, update the formData
+          setFormData((prev) => ({ ...prev, sku }));
+          setSkuError(false);
           setchecksku(false);
-        }, 2000);
-      } else {
-        // If SKU is available, update the formData
-        setFormData((prev) => ({ ...prev, sku }));
-        setSkuError(false);
+        }
+      } catch (error) {
+        console.error("Error checking sku availability:", error);
         setchecksku(false);
       }
-    } catch (error) {
-      console.error("Error checking sku availability:", error);
-      setchecksku(false);
-    }
-  };
+    };
 
-  const checkSlugAvailability = async (slug) => {
-    if (!slug.trim()) return;
-    setCheckingSlug(true);
-    try {
-      const response = await axios.get(`/api/slug?slug=${slug}`);
-      if (response.data.exists) {
-        setSlugError(true);
-        setTimeout(async () => {
-          let newSlug = slug;
-          let attempt = 1;
-          let isAvailable = false;
+    const checkSlugAvailability = async (slug) => {
+      if (!slug.trim()) return;
+      setCheckingSlug(true);
+      try {
+        const response = await axios.get(`/api/slug?slug=${slug}`);
+        if (response.data.exists) {
+          setSlugError(true);
+          setTimeout(async () => {
+            let newSlug = slug;
+            let attempt = 1;
+            let isAvailable = false;
 
-          while (!isAvailable) {
-            const res = await axios.get(`/api/slug?slug=${newSlug}`);
-            if (!res.data.exists) {
-              isAvailable = true;
-            } else {
-              newSlug = `${slug}-${attempt}`;
-              attempt++;
+            while (!isAvailable) {
+              const res = await axios.get(`/api/slug?slug=${newSlug}`);
+              if (!res.data.exists) {
+                isAvailable = true;
+              } else {
+                newSlug = `${slug}-${attempt}`;
+                attempt++;
+              }
             }
-          }
-         
-          setFormData((prev) => ({ ...prev, slug: newSlug }));
+          
+            setFormData((prev) => ({ ...prev, slug: newSlug }));
+            setSlugError(false);
+            setCheckingSlug(false);
+          }, 2000);
+        } else {
+          // If slug is available, update the formData
+          setFormData((prev) => ({ ...prev, slug }));
           setSlugError(false);
           setCheckingSlug(false);
-        }, 2000);
-      } else {
-        // If slug is available, update the formData
-        setFormData((prev) => ({ ...prev, slug }));
-        setSlugError(false);
+        }
+      } catch (error) {
+        console.error("Error checking slug availability:", error);
         setCheckingSlug(false);
       }
-    } catch (error) {
-      console.error("Error checking slug availability:", error);
-      setCheckingSlug(false);
-    }
-  };
+    };
 
   // Simple validation
   const validate = (field, value) => {
@@ -292,15 +284,7 @@ setinputProducttype (values);
     }));
   };
 
-  // Handler for options coming from Variants component
-  const handleAddOptions = (values) => {
-    setOptions(values);
-  };
 
-  // Handler for variants coming from Variants component
-  const handleaddvariants = (values) => {
-    setvariants(values);
-  };
 
   const handleSubmit = async () => {
 
@@ -388,6 +372,10 @@ setinputProducttype (values);
         setSelectedVendor('');
         setSelectedTags([]);
         setProductType('');
+        setvariants([])
+        setOptions([])
+        setremovevariation([])
+        setremoveoptions([])
         localStorage.setItem("activeTab", "product");
         setTimeout(()=>{
           router.push("/products");
@@ -415,10 +403,32 @@ const goback = ()=>{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSlug]);
 
+const getBTP=async()=>{
+  try{
+     let tags = await getTags();
+  
+     if(tags.isSuccess){
+       setalltags(tags?.data);
+
+     }
+     let brands = await getBrands();
+     if(brands.isSuccess){
+       setallbrands(brands?.data);
+
+     }
+     
+     let productTypes = await getproducttype();
+      if(productTypes.isSuccess){
+        setallProductType(productTypes?.data)
+
+      }
+  }catch(err){  
+    console.log(err);
+  }
+}
+
   useEffect(() => {
-    getTags();
-    getBrands();
-    getproducttype();
+    getBTP();
     setSelectedVendor('');
     setSelectedTags([]);
     setProductType('');
@@ -437,9 +447,8 @@ const goback = ()=>{
 
 const Addnewtags=async()=>{
  try{
-   let addtag = await axios.post("/api/tag",{tag_name:inputvalue});
-
-getTags();
+   let senddata = await addtag(inputvalue);
+    getBTP();
  }catch(err){
 
  }
@@ -448,9 +457,10 @@ getTags();
 }
 const Addnewvendor = async()=>{
   try{
-    let addbrand= await axios.post("/api/brand",{brand_name:vendorinput});
+   let senddata = await addvendor(vendorinput);
+   
 
-    getBrands();
+   getBTP();
   }catch(err){
  
   }
@@ -458,9 +468,8 @@ const Addnewvendor = async()=>{
 
 const Addnewpt =async()=>{
   try{
-    let addbrand= await axios.post("/api/product_type",{product_type_name:productinput});
-  
-   getproducttype();
+    let senddata= await addproductype(productinput);
+    getBTP();
   }catch(err){
  
   }
@@ -819,8 +828,8 @@ const Addnewpt =async()=>{
 
 
       <Variants
-        handleAddOptions={handleAddOptions}
-        handleaddvariants={handleaddvariants}
+   
+      
         price={formData.price}
         images={formData.images[0]}
         sku = {formData.sku}

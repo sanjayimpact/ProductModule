@@ -20,9 +20,12 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import InventoryTable from "./Variantdetails";
+import { useECart } from "../Context/eCartcontext";
 
-const Variants = ({handleAddOptions, handleaddvariants,price,Barcode,images,editProduct, existingOptions,handlremoveOptions,extractvariants,currentProduct ,handleRemovedVariants,sku,stock }) => {
+const Variants = ({price,Barcode,editProduct, existingOptions,currentProduct,sku,stock }) => {
 
+  
+const{handleAddOptions,handlremoveOptions} = useECart();
 
   const [addOption, setAddOption] = useState(false);
   const [options, setOptions] = useState([]);
@@ -373,7 +376,7 @@ const Variants = ({handleAddOptions, handleaddvariants,price,Barcode,images,edit
           )}
         </Grid>
       </Paper>
-      {options.length > 0 && <InventoryTable Barcode  ={Barcode} stock={stock }  sku={sku} currentProduct={currentProduct} handleRemovedVariants={handleRemovedVariants} extractvariants={extractvariants} handleaddvariants={handleaddvariants} options={options} price={price} images = {images} editProduct = {editProduct}/>}
+      {options.length > 0 && <InventoryTable Barcode  ={Barcode} stock={stock }  sku={sku} currentProduct={currentProduct}   options={options} price={price}/>}
     </>
   );
 };

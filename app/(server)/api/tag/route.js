@@ -25,7 +25,7 @@ export const GET = async(req)=>{
     try{
         let tags = await Tag.find({shop_id:1});
         if(tags){
-            return NextResponse.json({data:tags,message:"Tags fetched successfully"},{status:200});
+            return NextResponse.json({data:tags,message:"Tags fetched successfully" ,isSuccess:true},{status:200});
         }
         return NextResponse.json({message:"No tags found"},{status:404});
          

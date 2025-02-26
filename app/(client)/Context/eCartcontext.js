@@ -8,8 +8,7 @@ const ECartContext = createContext();
 export const useECart = () => useContext(ECartContext);
 const ECartProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
-  const [options,setOptions] = useState([]);
-  const [variants,setvariants] = useState([]);
+
   const[show,setshow] = useState(false);
   const[alltags,setalltags]  =useState([])
   const[ allProductType,setallProductType]  =useState([])
@@ -20,68 +19,32 @@ const ECartProvider = ({ children }) => {
 const [selectedTags, setSelectedTags] = useState([]);
 const[productinput,setinputProducttype] = useState(null);
 const [selectedProducttype,setProductType] = useState(null);
-
-const fetchProducts = async () => {
-    try {
-      const response = await axios.get("/api/product"); // Adjust the endpoint
-      setProducts(response.data.data);
-      setshow(false);
-      localStorage.setItem('add',false)
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    }
-  };
-
-
-  const deleteproducts = async(id)=>{
-    try {
-        const deletedata = await axios.delete(`/api/product/${id}`); // Adjust API endpoint
-        return deletedata.data
-        
-  
-      } catch (error) {
-        console.error("Error deleting product:", error);
-      }
-  }
-
-const getTags = async()=>{
-  try{
-       let response = await axios.get("/api/tag");
-
-       setalltags(response?.data?.data);
-  }catch(err){
-    console.error("Error fetching tags:", err);
-  }
-}
-
-
-const getBrands = async()=>{
-  try{
-    let response = await axios.get("/api/brand");
-    setallbrands(response?.data?.data);
-  }catch(err){
-    console.log(err);
-  }
-}
-const getproducttype = async()=>{
-  try{
-    let response = await axios.get("/api/product_type");
-    setallProductType(response?.data?.data);
-  }catch(err){
-    console.log(err);
-  }
-}
-
-
-
+const [variants, setvariants] = useState([]);
+  const [removevariation, setremovevariation] = useState([]);
+ const [options, setOptions] = useState([]);
+  const [removeoptions, setremoveoptions] = useState([]);
+ const handleAddOptions = (values) => {
+  setOptions(values);
+};
  
+const handleaddvariants = (values) => {
+  setvariants(values);
+};
+const handleRemovedVariants = (values) => {
+  setremovevariation(values);
+}
+
+
+const handlremoveOptions = (values) => {
+  setremoveoptions(values);
+}
+
   return (
     <ECartContext.Provider
       value={{
         
-        products,
-        deleteproducts,
-        fetchProducts,show,setshow,getTags,alltags,vendorinput,setvendorinput,getBrands,allbrands,selectedVendor, setSelectedVendor,selectedTags, setSelectedTags,setinputProducttype,inputvalue,setInputvalue,selectedProducttype,setProductType,allProductType,getproducttype,productinput
+        products,setalltags,setallProductType,setallbrands,
+       show,setshow,alltags,vendorinput,setvendorinput,allbrands,selectedVendor, setSelectedVendor,selectedTags, setSelectedTags,setinputProducttype,inputvalue,setInputvalue,selectedProducttype,setProductType,allProductType,productinput,options, setOptions,handleAddOptions,variants, setvariants,handleaddvariants,removevariation, setremovevariation,handleRemovedVariants,removeoptions, setremoveoptions,handlremoveOptions
       }}
     >
       {children}
